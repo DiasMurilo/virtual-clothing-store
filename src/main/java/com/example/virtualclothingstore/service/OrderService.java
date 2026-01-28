@@ -1,5 +1,7 @@
 package com.example.virtualclothingstore.service;
 
+import com.example.virtualclothingstore.dto.OrderDTO;
+import com.example.virtualclothingstore.dto.OrderItemDTO;
 import com.example.virtualclothingstore.entity.*;
 import com.example.virtualclothingstore.repository.OrderRepository;
 import com.example.virtualclothingstore.repository.OrderItemRepository;
@@ -10,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -35,8 +38,11 @@ public class OrderService {
     }
 
     public List<Order> getOrdersByCustomerId(Long customerId) {
-        Optional<Customer> customer = customerService.getCustomerById(customerId);
-        return customer.map(Customer::getOrders).orElse(List.of());
+        return orderRepository.findByCustomerId(customerId);
+    }
+
+    public List<Order> getOrdersByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        return orderRepository.findByOrderDateBetween(startDate, endDate);
     }
 
     public Order createOrder(Long customerId, List<OrderItem> items) {
@@ -112,5 +118,71 @@ public class OrderService {
 
     public void deleteOrder(Long id) {
         orderRepository.deleteById(id);
+    }
+
+    // DTO conversion methods
+    public OrderDTO toDTO(Order order) {
+        OrderDTO dto = new OrderDTO();
+        dto.setId(order.getId());
+        dto.setCustomerId(order.getCustomer() != null ? order.getCustomer().getId() : null);
+        dto.setOrderDate(order.getOrderDate());
+        dto.setStatus(order.getStatus() != null ? order.getStatus().name() : null);
+        dto.setTotalAmount(order.getTotalAmount());
+        dto.setOrderItems(order.getOrderItems().stream()
+                .map(this::toOrderItemDTO)
+                .collect(Collectors.toList()));
+        return dto;
+    }
+
+    public OrderItemDTO toOrderItemDTO(OrderItem item) {
+        OrderItemDTO dto = new OrderItemDTO();
+        dto.setId(item.getId());
+        dto.setProductId(item.getProduct() != null ? item.getProduct().getId() : null);
+        dto.setQuantity(item.getQuantity());
+        dto.setPrice(item.getPrice());
+        return dto;
+    }
+
+    public Order fromDTO(OrderDTO dto) {
+        Order order = new Order();
+        order.setId(dto.getId());
+        order.setOrderDate(dto.getOrderDate());
+        if (dto.getStatus() != null) {
+            order.setStatus(OrderStatus.valueOf(dto.getStatus()));
+        }
+        order.setTotalAmount(dto.getTotalAmount());
+        // Note: Customer and OrderItems will be set by the controller/service layer
+        return order;
+    }
+
+    public OrderItem fromOrderItemDTO(OrderItemDTO dto) {
+        OrderItem item = new OrderItem();
+        item.setId(dto.getId());
+        item.setQuantity(dto.getQuantity());
+        item.setPrice(dto.getPrice());
+        // Note: Order and Product will be set by the controller/service layer
+        return item;
+    }
+
+    public List<OrderDTO> getAllOrderDTOs() {
+        return getAllOrders().stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    public Optional<OrderDTO> getOrderDTOById(Long id) {
+        return getOrderById(id).map(this::toDTO);
+    }
+
+    public List<OrderDTO> getOrderDTOsByCustomerId(Long customerId) {
+        return getOrdersByCustomerId(customerId).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<OrderDTO> getOrderDTOsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        return getOrdersByDateRange(startDate, endDate).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 }

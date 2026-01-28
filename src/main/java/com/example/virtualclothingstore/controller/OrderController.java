@@ -1,12 +1,13 @@
 package com.example.virtualclothingstore.controller;
 
+import com.example.virtualclothingstore.dto.OrderDTO;
+import com.example.virtualclothingstore.dto.OrderItemDTO;
 import com.example.virtualclothingstore.entity.Order;
 import com.example.virtualclothingstore.entity.OrderItem;
+import com.example.virtualclothingstore.exception.BadRequestException;
+import com.example.virtualclothingstore.exception.ResourceNotFoundException;
 import com.example.virtualclothingstore.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,30 +23,34 @@ public class OrderController {
     private OrderService orderService;
 
     @GetMapping
-    public Page<Order> getAllOrders(@RequestParam(defaultValue = "0") int page,
-                                    @RequestParam(defaultValue = "10") int size,
-                                    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-                                    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
-        // TODO: Implement filtering and pagination
-        List<Order> orders = orderService.getAllOrders();
-        return Page.empty();
+    public List<OrderDTO> getAllOrders(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+                                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+        if (startDate != null && endDate != null) {
+            return orderService.getOrderDTOsByDateRange(startDate, endDate);
+        }
+        return orderService.getAllOrderDTOs();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Order> getOrderById(@PathVariable Long id) {
-        return orderService.getOrderById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<OrderDTO> getOrderById(@PathVariable Long id) {
+        OrderDTO orderDTO = orderService.getOrderDTOById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+        return ResponseEntity.ok(orderDTO);
     }
 
     @GetMapping("/customer/{customerId}")
-    public List<Order> getOrdersByCustomer(@PathVariable Long customerId) {
-        return orderService.getOrdersByCustomerId(customerId);
+    public List<OrderDTO> getOrdersByCustomer(@PathVariable Long customerId) {
+        return orderService.getOrderDTOsByCustomerId(customerId);
     }
 
     @PostMapping
-    public Order createOrder(@RequestParam Long customerId, @RequestBody List<OrderItem> items) {
-        return orderService.createOrder(customerId, items);
+    public OrderDTO createOrder(@RequestParam Long customerId, @RequestBody List<OrderItem> items) {
+        try {
+            Order saved = orderService.createOrder(customerId, items);
+            return orderService.toDTO(saved);
+        } catch (RuntimeException e) {
+            throw new BadRequestException(e.getMessage());
+        }
     }
 
     @PostMapping("/{orderId}/products")
@@ -56,7 +61,7 @@ public class OrderController {
             orderService.addProductToOrder(orderId, productId, quantity);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            throw new BadRequestException(e.getMessage());
         }
     }
 
@@ -66,17 +71,19 @@ public class OrderController {
             orderService.removeProductFromOrder(orderId, productId);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            throw new BadRequestException(e.getMessage());
         }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Order> updateOrder(@PathVariable Long id, @RequestBody Order order) {
+    public ResponseEntity<OrderDTO> updateOrder(@PathVariable Long id, @RequestBody OrderDTO orderDTO) {
         if (!orderService.getOrderById(id).isPresent()) {
-            return ResponseEntity.notFound().build();
+            throw new ResourceNotFoundException("Order not found with id: " + id);
         }
+        Order order = orderService.fromDTO(orderDTO);
         order.setId(id);
-        return ResponseEntity.ok(orderService.saveOrder(order));
+        Order saved = orderService.saveOrder(order);
+        return ResponseEntity.ok(orderService.toDTO(saved));
     }
 
     @DeleteMapping("/{id}")

@@ -1,6 +1,8 @@
 package com.example.virtualclothingstore.controller;
 
+import com.example.virtualclothingstore.dto.ProductDTO;
 import com.example.virtualclothingstore.entity.Product;
+import com.example.virtualclothingstore.exception.ResourceNotFoundException;
 import com.example.virtualclothingstore.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -9,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -19,34 +22,33 @@ public class ProductController {
     private ProductService productService;
 
     @GetMapping
-    public Page<Product> getAllProducts(@RequestParam(defaultValue = "0") int page,
-                                        @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        // For simplicity, using List and converting to Page, but ideally use Pageable in repository
-        List<Product> products = productService.getAllProducts();
-        // Note: Pagination not fully implemented in service, but placeholder
-        return Page.empty(); // TODO: Implement pagination
+    public List<ProductDTO> getAllProducts() {
+        return productService.getAllProductDTOs();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
-        return productService.getProductById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ProductDTO> getProductById(@PathVariable Long id) {
+        ProductDTO productDTO = productService.getProductDTOById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+        return ResponseEntity.ok(productDTO);
     }
 
     @PostMapping
-    public Product createProduct(@RequestBody Product product) {
-        return productService.saveProduct(product);
+    public ProductDTO createProduct(@Valid @RequestBody ProductDTO productDTO) {
+        Product product = productService.fromDTO(productDTO);
+        Product saved = productService.saveProduct(product);
+        return productService.toDTO(saved);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product) {
+    public ResponseEntity<ProductDTO> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductDTO productDTO) {
         if (!productService.getProductById(id).isPresent()) {
-            return ResponseEntity.notFound().build();
+            throw new ResourceNotFoundException("Product not found with id: " + id);
         }
+        Product product = productService.fromDTO(productDTO);
         product.setId(id);
-        return ResponseEntity.ok(productService.saveProduct(product));
+        Product saved = productService.saveProduct(product);
+        return ResponseEntity.ok(productService.toDTO(saved));
     }
 
     @DeleteMapping("/{id}")

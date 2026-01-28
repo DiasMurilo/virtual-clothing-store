@@ -1,5 +1,6 @@
 package com.example.virtualclothingstore.service;
 
+import com.example.virtualclothingstore.dto.CategoryDTO;
 import com.example.virtualclothingstore.entity.Category;
 import com.example.virtualclothingstore.repository.CategoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class CategoryService {
@@ -28,5 +30,32 @@ public class CategoryService {
 
     public void deleteCategory(Long id) {
         categoryRepository.deleteById(id);
+    }
+
+    // DTO conversion methods
+    public CategoryDTO toDTO(Category category) {
+        CategoryDTO dto = new CategoryDTO();
+        dto.setId(category.getId());
+        dto.setName(category.getName());
+        dto.setDescription(category.getDescription());
+        return dto;
+    }
+
+    public Category fromDTO(CategoryDTO dto) {
+        Category category = new Category();
+        category.setId(dto.getId());
+        category.setName(dto.getName());
+        category.setDescription(dto.getDescription());
+        return category;
+    }
+
+    public List<CategoryDTO> getAllCategoryDTOs() {
+        return getAllCategories().stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    public Optional<CategoryDTO> getCategoryDTOById(Long id) {
+        return getCategoryById(id).map(this::toDTO);
     }
 }
