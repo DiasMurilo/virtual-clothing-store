@@ -12,8 +12,9 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -23,12 +24,15 @@ public class OrderController {
     private OrderService orderService;
 
     @GetMapping
-    public List<OrderDTO> getAllOrders(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-                                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+    public Page<OrderDTO> getAllOrders(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+                                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+                                       @RequestParam(defaultValue = "0") int page,
+                                       @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
         if (startDate != null && endDate != null) {
-            return orderService.getOrderDTOsByDateRange(startDate, endDate);
+            return orderService.getOrderDTOsByDateRange(startDate, endDate, pageable);
         }
-        return orderService.getAllOrderDTOs();
+        return orderService.getAllOrderDTOs(pageable);
     }
 
     @GetMapping("/{id}")
@@ -39,8 +43,11 @@ public class OrderController {
     }
 
     @GetMapping("/customer/{customerId}")
-    public List<OrderDTO> getOrdersByCustomer(@PathVariable Long customerId) {
-        return orderService.getOrderDTOsByCustomerId(customerId);
+    public Page<OrderDTO> getOrdersByCustomer(@PathVariable Long customerId,
+                                              @RequestParam(defaultValue = "0") int page,
+                                              @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return orderService.getOrderDTOsByCustomerId(customerId, pageable);
     }
 
     @PostMapping

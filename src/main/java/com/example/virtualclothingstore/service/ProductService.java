@@ -6,9 +6,8 @@ import com.example.virtualclothingstore.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class ProductService {
@@ -59,6 +58,11 @@ public class ProductService {
         return getAllProducts().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    public Page<ProductDTO> getAllProductDTOs(Pageable pageable) {
+        Page<Product> products = productRepository.findAll(pageable);
+        return products.map(this::toDTO);
     }
 
     public Optional<ProductDTO> getProductDTOById(Long id) {

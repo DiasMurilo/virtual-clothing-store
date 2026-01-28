@@ -8,11 +8,8 @@ import com.example.virtualclothingstore.repository.OrderItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class OrderService {
@@ -170,6 +167,11 @@ public class OrderService {
                 .collect(Collectors.toList());
     }
 
+    public Page<OrderDTO> getAllOrderDTOs(Pageable pageable) {
+        Page<Order> orders = orderRepository.findAll(pageable);
+        return orders.map(this::toDTO);
+    }
+
     public Optional<OrderDTO> getOrderDTOById(Long id) {
         return getOrderById(id).map(this::toDTO);
     }
@@ -180,9 +182,19 @@ public class OrderService {
                 .collect(Collectors.toList());
     }
 
+    public Page<OrderDTO> getOrderDTOsByCustomerId(Long customerId, Pageable pageable) {
+        Page<Order> orders = orderRepository.findByCustomerId(customerId, pageable);
+        return orders.map(this::toDTO);
+    }
+
     public List<OrderDTO> getOrderDTOsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
         return getOrdersByDateRange(startDate, endDate).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    public Page<OrderDTO> getOrderDTOsByDateRange(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        Page<Order> orders = orderRepository.findByOrderDateBetween(startDate, endDate, pageable);
+        return orders.map(this::toDTO);
     }
 }
