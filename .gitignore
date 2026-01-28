@@ -1,0 +1,11 @@
+target/
+.bloop/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+.idea/
+.vscode/
+*.tmp
+.DS_Store
