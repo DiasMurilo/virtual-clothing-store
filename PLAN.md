@@ -10,6 +10,39 @@ Design and implement a Virtual Clothing Store RESTful API in Java, demonstrating
     - `Product` (clothing items, many-to-many with Order)
     - `Category` (optional, for product grouping)
     - Create ERD.
+
+    **ERD (Entity-Relationship Diagram):**
+
+    ```
+    +------------+       +------------+       +------------+
+    |  Customer  |       |    Order   |       | OrderItem  |
+    +------------+       +------------+       +------------+
+    | id (PK)    |<--1--| id (PK)     |<--1--| id (PK)     |
+    | firstName  |      | customer_id |      | order_id    |
+    | lastName   |      | orderDate   |      | product_id  |
+    | email      |      | totalAmount |      | quantity    |
+    | phone      |      | status      |      | price       |
+    | createdAt  |      +------------+       +------------+
+    +------------+              |                    |
+                                 |                    |
+                                 v                    v
+                           +------------+       +------------+
+                           |  Product   |       |  Category  |
+                           +------------+       +------------+
+                           | id (PK)    |       | id (PK)    |
+                           | name       |       | name       |
+                           | description|       | description|
+                           | price      |       +------------+
+                           | stockQty   |
+                           | category_id|
+                           +------------+
+    ```
+
+    **Relationships:**
+    - Customer 1:N Order
+    - Order 1:N OrderItem
+    - OrderItem N:1 Product
+    - Product N:1 Category
 3. **Implement REST endpoints**: CRUD for `Customer`, `Order`, and `Product` entities, including:
     - Retrieve all orders for a customer
     - Add/remove products to/from orders
