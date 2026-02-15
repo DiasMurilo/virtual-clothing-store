@@ -1,20 +1,30 @@
 package com.example.virtualclothingstore.controller;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.example.virtualclothingstore.dto.OrderDTO;
-import com.example.virtualclothingstore.dto.OrderItemDTO;
 import com.example.virtualclothingstore.entity.Order;
 import com.example.virtualclothingstore.entity.OrderItem;
 import com.example.virtualclothingstore.exception.BadRequestException;
 import com.example.virtualclothingstore.exception.ResourceNotFoundException;
 import com.example.virtualclothingstore.service.OrderService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -51,13 +61,10 @@ public class OrderController {
     }
 
     @PostMapping
-    public OrderDTO createOrder(@RequestParam Long customerId, @RequestBody List<OrderItem> items) {
-        try {
-            Order saved = orderService.createOrder(customerId, items);
-            return orderService.toDTO(saved);
-        } catch (RuntimeException e) {
-            throw new BadRequestException(e.getMessage());
-        }
+    public OrderDTO createOrder(@RequestBody OrderDTO orderDTO) {
+        Order order = orderService.fromDTO(orderDTO);
+        Order saved = orderService.saveOrder(order);
+        return orderService.toDTO(saved);
     }
 
     @PostMapping("/{orderId}/products")

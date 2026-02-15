@@ -1,0 +1,48 @@
+name: CI/CD Pipeline for Virtual Clothing Store
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Cache Maven packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Build with Maven
+      run: mvn clean compile
+
+    - name: Run tests
+      run: mvn test
+
+    - name: Package application
+      run: mvn package -DskipTests
+
+    - name: Build Docker image
+      run: docker build -t virtual-clothing-store .
+
+    - name: Run Docker container (basic test)
+      run: |
+        docker run -d --name test-app -p 8080:8080 virtual-clothing-store
+        sleep 30  # Wait for app to start
+        curl -f http://localhost:8080/actuator/health || exit 1  # Basic health check
+        docker stop test-app
+        docker rm test-app

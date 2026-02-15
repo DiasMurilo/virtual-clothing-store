@@ -1,6 +1,6 @@
 package com.example.virtualclothingstore.dto;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 public class CategoryDTO {
 

@@ -1,15 +1,15 @@
 package com.example.virtualclothingstore.service;
 
-import com.example.virtualclothingstore.dto.CustomerDTO;
-import com.example.virtualclothingstore.entity.Customer;
-import com.example.virtualclothingstore.exception.ResourceNotFoundException;
-import com.example.virtualclothingstore.repository.CustomerRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.example.virtualclothingstore.dto.CustomerDTO;
+import com.example.virtualclothingstore.entity.Customer;
+import com.example.virtualclothingstore.repository.CustomerRepository;
 
 @Service
 public class CustomerService {
@@ -37,7 +37,7 @@ public class CustomerService {
         return getCustomerById(id).map(this::toDTO);
     }
 
-    private CustomerDTO toDTO(Customer customer) {
+    public CustomerDTO toDTO(Customer customer) {
         return new CustomerDTO(customer.getId(), customer.getFirstName(), customer.getLastName(),
                 customer.getEmail(), customer.getPhone(), customer.getCreatedAt());
     }
@@ -47,3 +47,8 @@ public class CustomerService {
         customer.setId(dto.getId());
         return customer;
     }
+
+    public void deleteCustomer(Long id) {
+        customerRepository.deleteById(id);
+    }
+}

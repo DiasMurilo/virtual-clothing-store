@@ -3,6 +3,7 @@ package com.example.virtualclothingstore.service;
 import com.example.virtualclothingstore.dto.OrderDTO;
 import com.example.virtualclothingstore.dto.OrderItemDTO;
 import com.example.virtualclothingstore.entity.*;
+import com.example.virtualclothingstore.exception.ResourceNotFoundException;
 import com.example.virtualclothingstore.repository.OrderRepository;
 import com.example.virtualclothingstore.repository.OrderItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,12 @@ import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -122,10 +129,11 @@ public class OrderService {
         OrderDTO dto = new OrderDTO();
         dto.setId(order.getId());
         dto.setCustomerId(order.getCustomer() != null ? order.getCustomer().getId() : null);
+        dto.setCustomerName(order.getCustomer() != null ? order.getCustomer().getFirstName() + " " + order.getCustomer().getLastName() : null);
         dto.setOrderDate(order.getOrderDate());
         dto.setStatus(order.getStatus() != null ? order.getStatus().name() : null);
         dto.setTotalAmount(order.getTotalAmount());
-        dto.setOrderItems(order.getOrderItems().stream()
+        dto.setItems(order.getOrderItems().stream()
                 .map(this::toOrderItemDTO)
                 .collect(Collectors.toList()));
         return dto;
@@ -135,6 +143,7 @@ public class OrderService {
         OrderItemDTO dto = new OrderItemDTO();
         dto.setId(item.getId());
         dto.setProductId(item.getProduct() != null ? item.getProduct().getId() : null);
+        dto.setProductName(item.getProduct() != null ? item.getProduct().getName() : null);
         dto.setQuantity(item.getQuantity());
         dto.setPrice(item.getPrice());
         return dto;
@@ -148,7 +157,36 @@ public class OrderService {
             order.setStatus(OrderStatus.valueOf(dto.getStatus()));
         }
         order.setTotalAmount(dto.getTotalAmount());
-        // Note: Customer and OrderItems will be set by the controller/service layer
+
+        // Set customer
+        if (dto.getCustomerId() != null) {
+            Customer customer = customerService.getCustomerById(dto.getCustomerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+            order.setCustomer(customer);
+        }
+
+        // Set order items
+        if (dto.getItems() != null) {
+            for (OrderItemDTO itemDTO : dto.getItems()) {
+                Product product = productService.getProductById(itemDTO.getProductId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+                OrderItem item = new OrderItem();
+                item.setProduct(product);
+                item.setQuantity(itemDTO.getQuantity());
+                item.setPrice(product.getPrice());
+                item.setOrder(order);
+                order.getOrderItems().add(item);
+            }
+        }
+
+        // Calculate total if not set
+        if (order.getTotalAmount() == null) {
+            BigDecimal total = order.getOrderItems().stream()
+                    .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            order.setTotalAmount(total);
+        }
+
         return order;
     }
 

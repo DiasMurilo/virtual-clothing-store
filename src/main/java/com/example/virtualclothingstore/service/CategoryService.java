@@ -1,14 +1,15 @@
 package com.example.virtualclothingstore.service;
 
-import com.example.virtualclothingstore.dto.CategoryDTO;
-import com.example.virtualclothingstore.entity.Category;
-import com.example.virtualclothingstore.repository.CategoryRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.example.virtualclothingstore.dto.CategoryDTO;
+import com.example.virtualclothingstore.entity.Category;
+import com.example.virtualclothingstore.repository.CategoryRepository;
 
 @Service
 public class CategoryService {
