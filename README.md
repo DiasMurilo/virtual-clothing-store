@@ -38,27 +38,42 @@ docker-compose up -d --build
 ```
 
 **Services started:**
+
 - **App**: `http://localhost:8080` (Spring Boot application)
 - **Database**: `localhost:5432` (PostgreSQL)
 
 **To stop:**
+
 ```bash
 docker-compose down
 ```
 
 ### Option 2: Docker (Quick Testing)
 
-For quick testing with H2 in-memory database (no external database required).
+For quick testing the container image runs with the `docker` Spring profile and uses the **H2 in‑memory database** by default (no external DB required).
 
 ```bash
 # Build the image
 docker build -t virtual-clothing-store .
 
-# Run the container
+# Run the container (uses H2 by default via the 'docker' profile)
 docker run -d -p 8080:8080 virtual-clothing-store
+
+# Tail container logs
+docker logs -f <container-id-or-name>
 
 # Access the API
 curl http://localhost:8080/
+```
+
+Note: To run the standalone container against a PostgreSQL instance (instead of H2), pass the datasource environment variables which will override the in‑image settings:
+
+```bash
+docker run -d -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://<db-host>:5432/virtualclothingstore \
+  -e SPRING_DATASOURCE_USERNAME=postgres \
+  -e SPRING_DATASOURCE_PASSWORD=password \
+  virtual-clothing-store
 ```
 
 ### Option 3: Local Development
@@ -66,45 +81,65 @@ curl http://localhost:8080/
 Run locally with your own PostgreSQL database.
 
 **Prerequisites:**
+
 - Java 21
 - Maven 3.6+
 - PostgreSQL 15
 
 **Setup Database:**
+
 ```sql
 CREATE DATABASE virtualclothingstore;
 CREATE USER postgres WITH PASSWORD 'password';
 GRANT ALL PRIVILEGES ON DATABASE virtualclothingstore TO postgres;
 ```
 
-**Run Application:**
+**Run Application (development):**
+
 ```bash
-# Build and run
-mvn clean install
+# Run with Maven (uses application.properties / PostgreSQL)
 mvn spring-boot:run
 
-# Or run directly
-mvn spring-boot:run
+# Run with the 'docker' profile locally (H2 in-memory)
+mvn -Dspring-boot.run.profiles=docker spring-boot:run
+
+# Or build and run the packaged JAR (specify profile as a JVM property)
+mvn clean package
+java -Dspring.profiles.active=docker -jar target/virtual-clothing-store-0.0.1-SNAPSHOT.jar
+```
+
+**Run tests:**
+
+```bash
+mvn test        # unit tests
+mvn verify      # integration tests (if configured)
 ```
 
 **Access:** `http://localhost:8080`
 
 ## Testing the API
 
-Once running, test the endpoints:
+Once running, verify and exercise the API endpoints:
 
 ```bash
-# Check if API is running
+# Health check
 curl http://localhost:8080/
 
-# Get all categories
+# List categories
 curl http://localhost:8080/api/categories
 
 # Create a customer
 curl -X POST http://localhost:8080/api/customers \
-  -H "Content-Type: application/json" \
+  -H 'Content-Type: application/json' \
   -d '{"firstName":"John","lastName":"Doe","email":"john@example.com","phone":"+1234567890"}'
 ```
+
+Helpful commands:
+
+- Tail application logs: `docker-compose logs -f app` or `docker logs -f <container-name>`
+- Stop services: `docker-compose down` (add `-v` to remove volumes)
+- Run unit tests: `mvn test`
+
 
 ## API Endpoints
 
