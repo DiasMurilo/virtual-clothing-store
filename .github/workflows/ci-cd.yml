@@ -43,6 +43,6 @@ jobs:
       run: |
         docker run -d --name test-app -p 8080:8080 virtual-clothing-store
         sleep 30  # Wait for app to start
-        curl -f http://localhost:8080/actuator/health || exit 1  # Basic health check
+        curl -f http://localhost:8080/ || exit 1  # Basic health check using home endpoint
         docker stop test-app
         docker rm test-app
