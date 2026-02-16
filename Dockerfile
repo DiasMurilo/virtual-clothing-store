@@ -26,5 +26,5 @@ COPY --from=build /app/target/virtual-clothing-store-0.0.1-SNAPSHOT.jar .
 # Expose port 8080
 EXPOSE 8080
 
-# Run the application
-CMD ["java", "-jar", "virtual-clothing-store-0.0.1-SNAPSHOT.jar"]
+# Run the application with docker profile
+CMD ["java", "-jar", "-Dspring.profiles.active=docker", "virtual-clothing-store-0.0.1-SNAPSHOT.jar"]
