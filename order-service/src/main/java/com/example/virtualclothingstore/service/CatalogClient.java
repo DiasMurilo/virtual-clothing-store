@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
-@FeignClient(name = "catalog-service")
+@FeignClient(name = "catalog-service", fallback = CatalogClientFallback.class)
 public interface CatalogClient {
     @GetMapping("/api/products")
     List<ProductDTO> getAllProducts();
