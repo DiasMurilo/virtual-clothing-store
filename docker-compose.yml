@@ -39,6 +39,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      discovery-server:
+        condition: service_started
+      config-server:
+        condition: service_started
     networks:
       - app-network
 
