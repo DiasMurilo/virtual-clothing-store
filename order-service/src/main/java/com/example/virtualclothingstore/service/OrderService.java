@@ -3,6 +3,8 @@ package com.example.virtualclothingstore.service;
 import com.example.virtualclothingstore.dto.OrderDTO;
 import com.example.virtualclothingstore.dto.OrderItemDTO;
 import com.example.virtualclothingstore.entity.*;
+import com.example.virtualclothingstore.dto.ProductDTO;
+import com.example.virtualclothingstore.service.CatalogClient;
 import com.example.virtualclothingstore.exception.ResourceNotFoundException;
 import com.example.virtualclothingstore.repository.OrderRepository;
 import com.example.virtualclothingstore.repository.OrderItemRepository;
@@ -31,7 +33,7 @@ public class OrderService {
     private CustomerService customerService;
 
     @Autowired
-    private ProductService productService;
+    private CatalogClient catalogClient;  // remote product service
 
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
@@ -82,16 +84,20 @@ public class OrderService {
 
     public void addProductToOrder(Long orderId, Long productId, Integer quantity) {
         Optional<Order> orderOpt = orderRepository.findById(orderId);
-        Optional<Product> productOpt = productService.getProductById(productId);
-        if (orderOpt.isEmpty() || productOpt.isEmpty()) {
-            throw new RuntimeException("Order or Product not found");
+        if (orderOpt.isEmpty()) {
+            throw new RuntimeException("Order not found");
         }
         Order order = orderOpt.get();
-        Product product = productOpt.get();
+        ProductDTO productDto = catalogClient.getProductById(productId);
+        if (productDto == null) {
+            throw new RuntimeException("Product not found");
+        }
+        Product product = dtoToProduct(productDto);
 
         OrderItem item = new OrderItem();
         item.setOrder(order);
-        item.setProduct(product);
+        item.setProductId(product.getId());
+        item.setProductName(product.getName());
         item.setQuantity(quantity);
         item.setPrice(product.getPrice());
 
@@ -112,7 +118,7 @@ public class OrderService {
         }
         Order order = orderOpt.get();
 
-        order.getOrderItems().removeIf(item -> item.getProduct().getId().equals(productId));
+        order.getOrderItems().removeIf(item -> item.getProductId() != null && item.getProductId().equals(productId));
         orderRepository.save(order);
     }
 
@@ -142,11 +148,16 @@ public class OrderService {
     public OrderItemDTO toOrderItemDTO(OrderItem item) {
         OrderItemDTO dto = new OrderItemDTO();
         dto.setId(item.getId());
-        dto.setProductId(item.getProduct() != null ? item.getProduct().getId() : null);
-        dto.setProductName(item.getProduct() != null ? item.getProduct().getName() : null);
+        dto.setProductId(item.getProductId());
+        dto.setProductName(item.getProductName());
         dto.setQuantity(item.getQuantity());
         dto.setPrice(item.getPrice());
         return dto;
+    }
+
+    private Product dtoToProduct(ProductDTO dto) {
+        if (dto == null) return null;
+        return new Product(dto.getId(), dto.getName(), dto.getPrice());
     }
 
     public Order fromDTO(OrderDTO dto) {
@@ -168,10 +179,14 @@ public class OrderService {
         // Set order items
         if (dto.getItems() != null) {
             for (OrderItemDTO itemDTO : dto.getItems()) {
-                Product product = productService.getProductById(itemDTO.getProductId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+                ProductDTO productDto = catalogClient.getProductById(itemDTO.getProductId());
+                if (productDto == null) {
+                    throw new ResourceNotFoundException("Product not found");
+                }
+                Product product = dtoToProduct(productDto);
                 OrderItem item = new OrderItem();
-                item.setProduct(product);
+                item.setProductId(product.getId());
+                item.setProductName(product.getName());
                 item.setQuantity(itemDTO.getQuantity());
                 item.setPrice(product.getPrice());
                 item.setOrder(order);
