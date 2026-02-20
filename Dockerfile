@@ -31,6 +31,9 @@ RUN mvn clean package -pl ${MODULE} -am -DskipTests
 # Runtime stage
 FROM eclipse-temurin:21-jdk AS runtime
 
+# repeat build arg so runtime stage knows which module was built
+ARG MODULE=order-service
+
 # Set working directory
 WORKDIR /app
 
@@ -41,5 +44,5 @@ COPY --from=build /app/${MODULE}/target/${MODULE}-0.0.1-SNAPSHOT.jar ./app.jar
 # Expose port 8080
 EXPOSE 8080
 
-# Run the application with docker profile
-CMD ["java", "-jar", "-Dspring.profiles.active=docker", "app.jar"]
+# Run the application (profiles may be supplied via environment)
+CMD ["java", "-jar", "app.jar"]
