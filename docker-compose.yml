@@ -1,4 +1,30 @@
 services:
+  discovery-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - MODULE=discovery-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - app-network
+
+  config-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - MODULE=config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - app-network
+
   app:
     build: .
     ports:
