@@ -23,3 +23,12 @@ eureka:
   client:
     service-url:
       defaultZone: http://discovery-server:8761/eureka/
+
+# tracing
+spring:
+  sleuth:
+    sampler:
+      probability: 1
+  zipkin:
+    base-url: http://zipkin:9411
+

@@ -1,8 +1,6 @@
-server:
-  port: 0
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/orderdb
+    url: jdbc:postgresql://localhost:5432/virtualclothingstore
     username: postgres
     password: password
   sleuth:

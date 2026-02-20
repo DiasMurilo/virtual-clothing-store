@@ -105,6 +105,14 @@ services:
       timeout: 5s
       retries: 5
 
+  zipkin:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"
+    networks:
+      - app-network
+
+
 volumes:
   postgres_data:
 
