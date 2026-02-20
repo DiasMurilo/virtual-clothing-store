@@ -41,6 +41,31 @@ services:
     networks:
       - app-network
 
+  catalog-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - MODULE=catalog-service
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/virtualclothingstore
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    depends_on:
+      db:
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+    networks:
+      - app-network
+
   app:
     build: .
     ports:
