@@ -3,6 +3,11 @@ server:
 spring:
   application:
     name: api-gateway
+  sleuth:
+    sampler:
+      probability: 1
+  zipkin:
+    base-url: http://zipkin:9411
   cloud:
     gateway:
       routes:
@@ -24,11 +29,5 @@ eureka:
     service-url:
       defaultZone: http://discovery-server:8761/eureka/
 
-# tracing
-spring:
-  sleuth:
-    sampler:
-      probability: 1
-  zipkin:
-    base-url: http://zipkin:9411
+# tracing (merged into spring section below)
 
