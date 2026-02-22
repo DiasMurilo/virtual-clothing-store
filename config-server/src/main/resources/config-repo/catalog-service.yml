@@ -3,8 +3,14 @@ spring:
     url: jdbc:postgresql://localhost:5432/virtualclothingstore
     username: postgres
     password: password
-  sleuth:
-    sampler:
-      probability: 1
+
+app:
+  demo-message: "Hello from Config Server v2 - UPDATED!"
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
   zipkin:
-    base-url: http://zipkin:9411
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans

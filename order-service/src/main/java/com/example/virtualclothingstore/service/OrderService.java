@@ -35,6 +35,8 @@ public class OrderService {
     @Autowired
     private CatalogClient catalogClient;  // remote product service
 
+    // Feign client has its own fallback; no local annotation required
+
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
     }
@@ -250,4 +252,5 @@ public class OrderService {
         Page<Order> orders = orderRepository.findByOrderDateBetween(startDate, endDate, pageable);
         return orders.map(this::toDTO);
     }
+
 }

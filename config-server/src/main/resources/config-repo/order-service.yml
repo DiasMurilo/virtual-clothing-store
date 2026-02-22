@@ -5,8 +5,10 @@ spring:
     url: jdbc:postgresql://localhost:5432/orderdb
     username: postgres
     password: password
-  sleuth:
-    sampler:
-      probability: 1
+management:
+  tracing:
+    sampling:
+      probability: 1.0
   zipkin:
-    base-url: http://zipkin:9411
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
