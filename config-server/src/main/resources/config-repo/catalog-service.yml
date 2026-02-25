@@ -5,7 +5,7 @@ spring:
     password: password
 
 app:
-  demo-message: "Hello from Config Server v2 - UPDATED!"
+  demo-message: "Hello from Config Server v3 - hot reload"
 
 management:
   tracing:
