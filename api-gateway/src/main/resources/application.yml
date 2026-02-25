@@ -1,0 +1,66 @@
+server:
+  port: 8080
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: order-service
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: orderCB
+                fallbackUri: forward:/fallback/api/orders
+            - name: Retry
+              args:
+                retries: 2
+                statuses: BAD_GATEWAY,REQUEST_TIMEOUT,INTERNAL_SERVER_ERROR
+        - id: catalog-service
+          uri: lb://CATALOG-SERVICE
+          predicates:
+            - Path=/api/products/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: catalogCB
+                fallbackUri: forward:/fallback/api/products
+            - name: Retry
+              args:
+                retries: 2
+                statuses: BAD_GATEWAY,REQUEST_TIMEOUT,INTERNAL_SERVER_ERROR
+      forwarded:
+        enabled: false
+      httpclient:
+        use-forwarded-headers: false
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-server:8761/eureka/
+
+# tracing (merged into spring section below)
+

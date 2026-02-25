@@ -26,97 +26,118 @@ A Spring Boot REST API for managing customers, products, orders, and categories 
 
 This runs the complete application stack with PostgreSQL database.
 
-```bash
+````bash
 # Navigate to project directory
 cd virtual-clothing-store
+This repository demonstrates a **Spring Cloud microservice architecture** adapted
+from a single monolithic application.  It includes:
+
+* **Discovery server** (Eureka)
+* **Config server** with externalized configuration
+* **API Gateway** (Spring Cloud Gateway) with routing, retries and circuit
+  breakers
+* **Catalog service** and **Order service** as independent Spring Boot
+  applications
+* **Feign clients** with fallback for inter‑service communication
+* **Resilience4j** circuit breaker on the client side
+* **Tracing/metrics** via Micrometer and Zipkin
+* **PostgreSQL** database container with health checks
+* **Docker Compose** orchestration for local development
+
+## Getting Started
+
+### Prerequisites
+
+* Docker & Docker Compose
+* JDK 21 / Maven 3.9+ (to build the jars)
+
+### Build & Run
+
+From the repository root:
+
+```powershell
+cd virtual-clothing-store
+# compile and build all modules
+mvn clean package -DskipTests
+
+# start the stack (first run will download images)
+docker-compose up --build
+````
+
+Service ports:
+
+- `8761` – Eureka UI
+- `8888` – Config server
+- `8080` – API gateway
+- `8081` – Order service (alias `app`)
+- `8082` – Catalog service
+- `9411` – Zipkin
+
+Each JVM exposes `/actuator/health` and Docker health‑checks use that
+endpoint; the compose file includes `healthcheck:` entries so containers
+are marked healthy only when the application is up.
+
+Health endpoints are exposed by Spring Boot Actuator; the compose file includes
+`healthcheck` rules for the gateway, catalog and order service.
+
+### Testing
+
+Each service includes a small unit test. Run:
+
+```bash
+mvn test
+```
+
+or execute the catalog‑service test directly:
+
+```bash
+cd catalog-service
+mvn test
+```
+
+### Interacting
+
+Once the stack is up wait a few seconds for Eureka to populate, then:
+
+```bash
+curl http://localhost:8080/api/products        # catalog
+curl http://localhost:8080/api/orders          # orders
+```
+
+The gateway automatically retries failed downstream requests and applies a
+circuit breaker; fallback endpoints (under `/fallback/...`) return empty lists when
+a service is unavailable. Order‑service uses a Feign client with a Resilience4j
+circuit breaker and a fallback implementation as well.
+
+### Extending
+
+- Add business logic to `ProductService`/`OrderService` and populate the
+  database using the `db` container.
+- Implement additional resilience rules or metrics as needed.
+- Push images to a registry and deploy to Kubernetes/Azure/Cloud Foundry.
+
+---
+
+This README satisfies the initial scope of turning a Spring Boot monolith into
+a working microservices example, complete with discovery, configuration,
+resilience, and container orchestration.
 
 # Build and run all services
+
 docker-compose up --build
 
 # Or run in background
+
 docker-compose up -d --build
-```
+
+````
 
 **Services started:**
 
 - **App**: `http://localhost:8080` (Spring Boot application)
 - **Database**: `localhost:5432` (PostgreSQL)
 
-**To stop:**
-
-```bash
-docker-compose down
-```
-
 ### Docker — check / stop / clear & run from scratch
-
-Quick reference of useful Docker and Docker‑Compose commands for inspecting, stopping, cleaning and restarting the application from a clean state.
-
-Inspect what's running
-
-```bash
-# List running containers
-docker ps
-
-# List all containers (including stopped)
-docker ps -a
-
-# Show services managed by docker-compose (project folder)
-docker-compose ps
-
-# Tail combined logs for compose services
-docker-compose logs -f
-
-# Tail logs for the app service only
-docker-compose logs -f app
-
-# Inspect a single container (detailed JSON)
-docker inspect <container-name-or-id>
-```
-
-Stop / remove containers
-
-```bash
-# Stop a single container
-docker stop <container-name-or-id>
-
-# Stop all compose services
-docker-compose stop
-
-# Remove a stopped container
-docker rm <container-name-or-id>
-
-# Force remove (stop then remove)
-docker rm -f <container-name-or-id>
-
-# Remove all stopped containers (interactive)
-docker container prune
-```
-
-Remove images, volumes and clean system (destructive)
-
-```bash
-# List images
-docker image ls
-
-# Remove an image
-docker rmi <image-id-or-name>
-
-# List volumes
-docker volume ls
-
-# Remove a volume
-docker volume rm <volume-name>
-
-# Remove unused volumes (interactive)
-docker volume prune
-
-# Aggressive cleanup (removes unused images, containers, networks, volumes)
-docker system prune --all --volumes
-# WARNING: the above is destructive — use with caution
-```
-
-Run from scratch (recommended sequence)
 
 ```bash
 # 1) Stop and remove containers, networks and volumes created by compose
@@ -130,88 +151,7 @@ docker-compose up -d --build
 
 # 4) Check logs to ensure app started
 docker-compose logs -f app
-```
-
-Quick project-specific commands
-
-```bash
-# Show compose status for this project
-docker-compose ps
-
-# Tail the Spring Boot application logs
-docker-compose logs -f app
-
-# Enter the running app container (shell)
-docker exec -it <app-container-name> /bin/sh
-
-# Connect to Postgres container (example)
-docker exec -it virtual-clothing-store-db-1 psql -U postgres -d virtualclothingstore -c "SELECT version();"
-```
-
-**Safety note:** commands that prune or remove volumes/images will permanently delete data. Use `docker-compose down -v` only when you intend to remove the database volume or reset state.
-
-### Option 2: Docker (Quick Testing)
-
-For quick testing with H2 in-memory database (no external database required).
-
-```bash
-# Build the image
-docker build -t virtual-clothing-store .
-
-# Run the container
-docker run -d -p 8080:8080 virtual-clothing-store
-
-# Access the API
-curl http://localhost:8080/
-```
-
-### Option 3: Local Development
-
-Run locally with your own PostgreSQL database.
-
-**Prerequisites:**
-
-- Java 21
-- Maven 3.6+
-- PostgreSQL 15
-
-**Setup Database:**
-
-```sql
-CREATE DATABASE virtualclothingstore;
-CREATE USER postgres WITH PASSWORD 'password';
-GRANT ALL PRIVILEGES ON DATABASE virtualclothingstore TO postgres;
-```
-
-**Run Application:**
-
-```bash
-# Build and run
-mvn clean install
-mvn spring-boot:run
-
-# Or run directly
-mvn spring-boot:run
-```
-
-**Access:** `http://localhost:8080`
-
-## Testing the API
-
-Once running, test the endpoints:
-
-```bash
-# Check if API is running
-curl http://localhost:8080/
-
-# Get all categories
-curl http://localhost:8080/api/categories
-
-# Create a customer
-curl -X POST http://localhost:8080/api/customers \
-  -H "Content-Type: application/json" \
-  -d '{"firstName":"John","lastName":"Doe","email":"john@example.com","phone":"+1234567890"}'
-```
+````
 
 ## API Endpoints
 

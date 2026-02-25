@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/virtualclothingstore
+    username: postgres
+    password: password
+
+app:
+  demo-message: "Hello from Config Server v3 - hot reload"
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans

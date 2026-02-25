@@ -1,0 +1,10 @@
+server:
+  port: 8761
+spring:
+  application:
+    name: discovery-server
+  sleuth:
+    sampler:
+      probability: 1
+  zipkin:
+    base-url: http://zipkin:9411
