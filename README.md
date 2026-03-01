@@ -22,34 +22,19 @@ A Spring Boot REST API for managing customers, products, orders, and categories 
 
 ## Running the Application
 
-### Option 1: Docker Compose (Recommended)
+### Docker Compose
 
 This runs the complete application stack with PostgreSQL database.
 
-````bash
+```bash
 # Navigate to project directory
 cd virtual-clothing-store
-This repository demonstrates a **Spring Cloud microservice architecture** adapted
-from a single monolithic application.  It includes:
-
-* **Discovery server** (Eureka)
-* **Config server** with externalized configuration
-* **API Gateway** (Spring Cloud Gateway) with routing, retries and circuit
-  breakers
-* **Catalog service** and **Order service** as independent Spring Boot
-  applications
-* **Feign clients** with fallback for inter‑service communication
-* **Resilience4j** circuit breaker on the client side
-* **Tracing/metrics** via Micrometer and Zipkin
-* **PostgreSQL** database container with health checks
-* **Docker Compose** orchestration for local development
-
-## Getting Started
+```
 
 ### Prerequisites
 
-* Docker & Docker Compose
-* JDK 21 / Maven 3.9+ (to build the jars)
+- Docker & Docker Compose
+- JDK 21 / Maven 3.9+ (to build the jars)
 
 ### Build & Run
 
@@ -62,7 +47,7 @@ mvn clean package -DskipTests
 
 # start the stack (first run will download images)
 docker-compose up --build
-````
+```
 
 Service ports:
 
@@ -103,6 +88,76 @@ Once the stack is up wait a few seconds for Eureka to populate, then:
 curl http://localhost:8080/api/products        # catalog
 curl http://localhost:8080/api/orders          # orders
 ```
+
+### Configuration Management
+
+Configuration values come from the config server. To test dynamic
+refresh:
+
+```bash
+# read current value
+curl http://localhost:8082/api/config/message
+
+# edit config-server/src/main/resources/config-repo/catalog-service.yml
+# (change app.demo-message)
+
+# rebuild config-server and restart it
+docker-compose up -d --build config-server
+
+# tell catalog service to refresh
+curl -X POST http://localhost:8082/actuator/refresh
+
+# verify the new value
+curl http://localhost:8082/api/config/message
+```
+
+### Resilience & Fault Handling
+
+The gateway retries and opens a circuit breaker; fallbacks return empty
+lists. You can simulate failures by stopping services:
+
+```bash
+# stop catalog service
+docker stop virtual-clothing-store-catalog-service-1
+curl http://localhost:8080/api/products   # should return []
+
+# stop order service
+docker stop virtual-clothing-store-app-1
+curl http://localhost:8080/api/orders     # should return []
+
+# restart services
+docker start virtual-clothing-store-catalog-service-1
+docker start virtual-clothing-store-app-1
+```
+
+Watch the gateway logs (`docker-compose logs -f api-gateway`) to see
+retry/circuit-breaker events.
+
+### Observability & Tracing
+
+All requests are traced through Zipkin. After sending traffic, open the
+Zipkin UI or use the API:
+
+```bash
+curl http://localhost:9411/api/v2/services
+curl http://localhost:9411/api/v2/traces?serviceName=api-gateway
+```
+
+When investigating a slow request, the trace shows timings for each
+service hop.
+
+### Extending
+
+- Add business logic to `ProductService`/`OrderService` and populate the
+  database using the `db` container.
+- Implement additional resilience rules or metrics as needed.
+- Push images to a registry and deploy to Kubernetes/Azure/Cloud Foundry.
+
+---
+
+This README satisfies the initial scope of turning a Spring Boot monolith into
+a working microservices example, complete with discovery, configuration,
+resilience, and container orchestration.
 
 The gateway automatically retries failed downstream requests and applies a
 circuit breaker; fallback endpoints (under `/fallback/...`) return empty lists when
