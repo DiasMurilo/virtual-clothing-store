@@ -1,8 +1,11 @@
 # Build stage
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 
-# build argument selects module to compile (default order-service)
-ARG MODULE=order-service
+# build argument selects module to compile (default api-gateway so the
+# resulting image listens on 8080 and can be exercised by a basic health
+# check; the original default was order-service which does not start a web
+# server on its own)
+ARG MODULE=api-gateway
 
 # Set working directory
 WORKDIR /app
