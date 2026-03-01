@@ -35,7 +35,8 @@ RUN mvn clean package -pl ${MODULE} -am -DskipTests
 FROM eclipse-temurin:21-jdk AS runtime
 
 # repeat build arg so runtime stage knows which module was built
-ARG MODULE=order-service
+# default matches build stage; build stage default was changed to api-gateway
+ARG MODULE=api-gateway
 
 # Set working directory
 WORKDIR /app
