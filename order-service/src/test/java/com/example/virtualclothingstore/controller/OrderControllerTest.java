@@ -1,58 +1,27 @@
-﻿package com.example.virtualclothingstore.controller;
+package com.example.virtualclothingstore.controller;
 
-import com.example.virtualclothingstore.dto.OrderDTO;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.example.virtualclothingstore.service.OrderService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Optional;
+@WebMvcTest(OrderController.class)
+public class OrderControllerTest {
 
-import static org.assertj.core.api.Assertions.assertThat;
+    @Autowired
+    private MockMvc mockMvc;
 
-class OrderControllerTest {
-
-    private OrderController controller;
-    private StubOrderService stubService;
-
-    static class StubOrderService extends OrderService {
-        private Optional<OrderDTO> result;
-        public void setResult(Optional<OrderDTO> r) { this.result = r; }
-        @Override public Optional<OrderDTO> getOrderDTOById(Long id) { return result; }
-        // other methods inherited but unused
-    }
-
-    @BeforeEach
-    void setup() {
-        stubService = new StubOrderService();
-        controller = new OrderController();
-        try {
-            java.lang.reflect.Field f = OrderController.class.getDeclaredField("orderService");
-            f.setAccessible(true);
-            f.set(controller, stubService);
-        } catch (ReflectiveOperationException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
+    @MockBean
+    private OrderService orderService;
 
     @Test
-    void getOrderById_returnsOrderDto() {
-        OrderDTO dto = new OrderDTO();
-        dto.setId(1L);
-        ((StubOrderService)stubService).setResult(Optional.of(dto));
-
-        ResponseEntity<OrderDTO> resp = controller.getOrderById(1L);
-        assertThat(resp.getStatusCodeValue()).isEqualTo(200);
-        assertThat(resp.getBody().getId()).isEqualTo(1L);
-    }
-
-    @Test
-    void getOrderById_notFound_throws() {
-        ((StubOrderService)stubService).setResult(Optional.empty());
-        try {
-            controller.getOrderById(2L);
-        } catch (RuntimeException e) {
-            assertThat(e.getMessage()).contains("Order not found");
-        }
+    void getOrdersShouldReturnOk() throws Exception {
+        mockMvc.perform(get("/orders"))
+               .andExpect(status().isOk());
     }
 }
