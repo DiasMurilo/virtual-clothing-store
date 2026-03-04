@@ -1,0 +1,15 @@
+server:
+  port: 8888
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        git:
+          enabled: false
+        native:
+          # look inside the classpath for configuration files
+          search-locations: classpath:/config-repo
