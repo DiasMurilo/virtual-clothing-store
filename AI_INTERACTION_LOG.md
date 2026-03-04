@@ -319,6 +319,14 @@ void findByCustomerId_withPagination_success() {
     assertEquals(1, result.getTotalElements());
     assertEquals(order.getId(), result.getContent().get(0).getId());
 }
+
+#### Gap 4: No End-to-End Smoke Test
+
+**AI Finding:** The existing suite covered unit, controller slice, and repository tests but lacked any test exercising the full application context. A simple `@SpringBootTest` with `TestRestTemplate` at the top of the pyramid would serve as a smoke test to ensure the app starts and responds.
+
+**Action Taken:** Added `OrderServiceE2ETest` with `@SpringBootTest(webEnvironment=RANDOM_PORT)` and in‑memory H2, disabling Eureka and config-server calls. This test performs a `GET /api/orders` request and asserts HTTP 200.
+
+**Result:** The suite now has 37 tests; the new E2E test runs quickly (~6 s) thanks to in‑memory DB and disabled discovery, closing the top‑of‑pyramid gap.
 ```
 
 ### Impact
