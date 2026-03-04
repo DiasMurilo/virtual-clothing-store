@@ -1,9 +1,7 @@
 package com.example.virtualclothingstore.controller;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.virtualclothingstore.dto.OrderDTO;
 import com.example.virtualclothingstore.entity.Order;
-import com.example.virtualclothingstore.entity.OrderItem;
 import com.example.virtualclothingstore.exception.BadRequestException;
 import com.example.virtualclothingstore.exception.ResourceNotFoundException;
 import com.example.virtualclothingstore.service.OrderService;
@@ -30,8 +27,12 @@ import com.example.virtualclothingstore.service.OrderService;
 @RequestMapping("/api/orders")
 public class OrderController {
 
-    @Autowired
-    private OrderService orderService;
+    private final OrderService orderService;
+
+    // Constructor injection for better testability
+    public OrderController(OrderService orderService) {
+        this.orderService = orderService;
+    }
 
     @GetMapping
     public Page<OrderDTO> getAllOrders(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,

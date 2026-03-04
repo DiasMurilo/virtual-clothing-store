@@ -1,39 +1,45 @@
 package com.example.virtualclothingstore.service;
 
-import com.example.virtualclothingstore.dto.OrderDTO;
-import com.example.virtualclothingstore.dto.OrderItemDTO;
-import com.example.virtualclothingstore.entity.*;
-import com.example.virtualclothingstore.dto.ProductDTO;
-import com.example.virtualclothingstore.service.CatalogClient;
-import com.example.virtualclothingstore.exception.ResourceNotFoundException;
-import com.example.virtualclothingstore.repository.OrderRepository;
-import com.example.virtualclothingstore.repository.OrderItemRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import com.example.virtualclothingstore.dto.OrderDTO;
+import com.example.virtualclothingstore.dto.OrderItemDTO;
+import com.example.virtualclothingstore.dto.ProductDTO;
+import com.example.virtualclothingstore.entity.Customer;
+import com.example.virtualclothingstore.entity.Order;
+import com.example.virtualclothingstore.entity.OrderItem;
+import com.example.virtualclothingstore.entity.OrderStatus;
+import com.example.virtualclothingstore.entity.Product;
+import com.example.virtualclothingstore.exception.ResourceNotFoundException;
+import com.example.virtualclothingstore.repository.OrderItemRepository;
+import com.example.virtualclothingstore.repository.OrderRepository;
+
 @Service
 public class OrderService {
 
-    @Autowired
-    private OrderRepository orderRepository;
+    private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final CustomerService customerService;
+    private final CatalogClient catalogClient;
 
-    @Autowired
-    private OrderItemRepository orderItemRepository;
-
-    @Autowired
-    private CustomerService customerService;
-
-    @Autowired
-    private CatalogClient catalogClient;  // remote product service
+    // Constructor injection for better testability
+    public OrderService(OrderRepository orderRepository,
+                       OrderItemRepository orderItemRepository,
+                       CustomerService customerService,
+                       CatalogClient catalogClient) {
+        this.orderRepository = orderRepository;
+        this.orderItemRepository = orderItemRepository;
+        this.customerService = customerService;
+        this.catalogClient = catalogClient;
+    }
 
     // Feign client has its own fallback; no local annotation required
 
@@ -104,6 +110,7 @@ public class OrderService {
         item.setPrice(product.getPrice());
 
         orderItemRepository.save(item);
+        order.getOrderItems().add(item); // Add item to order's collection
 
         // Recalculate total
         BigDecimal total = order.getOrderItems().stream()
