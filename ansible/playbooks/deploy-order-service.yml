@@ -10,7 +10,10 @@
 
   vars:
     container_name: "order-service"
+    # image may be provided via extra-vars; ensure repo part is lowercase
     docker_image: "{{ docker_image | default('ghcr.io/diasmurilo/virtual-clothing-store:latest') }}"
+    # compute normalized version used by tasks to avoid "invalid reference format" errors
+    normalized_docker_image: "{{ (docker_image.split(':')[0] | lower) + (':' + docker_image.split(':')[1] if ':' in docker_image else '') }}"
     container_port: 8081
     host_port: 8081
     health_endpoint: "http://localhost:{{ host_port }}/actuator/health"
@@ -23,7 +26,7 @@
         msg:
           - "=========================================="
           - "Deploying Order Service"
-          - "Image: {{ docker_image }}"
+          - "Image: {{ normalized_docker_image }}"
           - "Container: {{ container_name }}"
           - "Port: {{ host_port }}"
           - "=========================================="
@@ -55,7 +58,7 @@
 
     - name: Pull latest Docker image
       community.docker.docker_image:
-        name: "{{ docker_image }}"
+        name: "{{ normalized_docker_image }}"
         source: pull
         force_source: true
       register: image_pull
@@ -86,7 +89,7 @@
     - name: Deploy Order Service container
       community.docker.docker_container:
         name: "{{ container_name }}"
-        image: "{{ docker_image }}"
+        image: "{{ normalized_docker_image }}"
         state: started
         restart_policy: unless-stopped
         published_ports:
