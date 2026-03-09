@@ -1,5 +1,6 @@
 package com.example.virtualclothingstore.controller;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -13,9 +14,9 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.Page;
@@ -105,6 +106,27 @@ class OrderControllerUnitTest {
         Page<OrderDTO> result = controller.getAllOrders(null, null, 0, 10);
         assertEquals(1, result.getTotalElements());
         assertEquals(sampleDto, result.getContent().get(0));
+    }
+
+    @Test
+    @DisplayName("getAllOrders with date range delegates to date range service method")
+    void getAllOrders_withDateRange_callsDateRangeMethod() {
+        LocalDateTime start = LocalDateTime.of(2024, 1, 1, 0, 0);
+        LocalDateTime end = LocalDateTime.of(2024, 12, 31, 23, 59);
+        Page<OrderDTO> page = new PageImpl<>(Arrays.asList(sampleDto));
+        when(orderService.getOrderDTOsByDateRange(eq(start), eq(end), any(Pageable.class))).thenReturn(page);
+
+        Page<OrderDTO> result = controller.getAllOrders(start, end, 0, 10);
+        assertEquals(1, result.getTotalElements());
+        verify(orderService).getOrderDTOsByDateRange(eq(start), eq(end), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("removeProductFromOrder wraps RuntimeException in BadRequestException")
+    void removeProductFromOrder_whenServiceThrows_rethrowsBadRequest() {
+        doThrow(new RuntimeException("product not found")).when(orderService).removeProductFromOrder(1L, 99L);
+
+        assertThrows(BadRequestException.class, () -> controller.removeProductFromOrder(1L, 99L));
     }
 
     @Test

@@ -47,12 +47,13 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-            <!-- ensure test JVM property to help ByteBuddy on Java25 -->
+            <!-- ensure test JVM property to help ByteBuddy on Java25.
+                 @{argLine} is late-bound so JaCoCo's agent is included when prepare-agent runs first. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+                    <argLine>@{argLine} -Dnet.bytebuddy.experimental=true</argLine>
                 </configuration>
             </plugin>
             <!-- JaCoCo plugin at parent level to allow aggregate reports across modules -->
@@ -65,6 +66,14 @@
                         <id>prepare-agent</id>
                         <goals>
                             <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <!-- per-module HTML+XML report at verify phase -->
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
                         </goals>
                     </execution>
                     <execution>

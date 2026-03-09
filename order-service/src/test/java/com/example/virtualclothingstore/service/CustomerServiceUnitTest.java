@@ -166,4 +166,26 @@ class CustomerServiceUnitTest {
         assertEquals(testCustomer.getId(), result.get(0).getId());
         verify(customerRepository).findAll();
     }
+
+    @Test
+    @DisplayName("getCustomerDTOById returns DTO when customer exists")
+    void getCustomerDTOById_whenExists_returnsDto() {
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(testCustomer));
+
+        Optional<CustomerDTO> result = customerService.getCustomerDTOById(1L);
+
+        assertTrue(result.isPresent());
+        assertEquals(testCustomer.getId(), result.get().getId());
+        assertEquals(testCustomer.getEmail(), result.get().getEmail());
+    }
+
+    @Test
+    @DisplayName("getCustomerDTOById returns empty when customer not found")
+    void getCustomerDTOById_whenNotFound_returnsEmpty() {
+        when(customerRepository.findById(99L)).thenReturn(Optional.empty());
+
+        Optional<CustomerDTO> result = customerService.getCustomerDTOById(99L);
+
+        assertFalse(result.isPresent());
+    }
 }
