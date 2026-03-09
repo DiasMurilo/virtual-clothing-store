@@ -2,7 +2,6 @@ package com.example.virtualclothingstore.service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -14,15 +13,18 @@ import com.example.virtualclothingstore.entity.Category;
 import com.example.virtualclothingstore.entity.Product;
 import com.example.virtualclothingstore.repository.ProductRepository;
 import com.example.virtualclothingstore.service.CategoryService;
+import com.example.virtualclothingstore.exception.ResourceNotFoundException;
 
 @Service
 public class ProductService {
 
-    @Autowired
-    private ProductRepository productRepository;
+    private final ProductRepository productRepository;
+    private final CategoryService categoryService;
 
-    @Autowired
-    private CategoryService categoryService;
+    public ProductService(ProductRepository productRepository, CategoryService categoryService) {
+        this.productRepository = productRepository;
+        this.categoryService = categoryService;
+    }
 
     public List<Product> getAllProducts() {
         return productRepository.findAll();
@@ -64,7 +66,7 @@ public class ProductService {
         // Set category
         if (dto.getCategoryId() != null) {
             Category category = categoryService.getCategoryById(dto.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Category not found with id: " + dto.getCategoryId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + dto.getCategoryId()));
             product.setCategory(category);
         } else {
             // Assign default category
@@ -95,7 +97,7 @@ public class ProductService {
     public List<ProductDTO> getAllProductDTOs() {
         return getAllProducts().stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Page<ProductDTO> getAllProductDTOs(Pageable pageable) {

@@ -2,7 +2,6 @@ package com.example.virtualclothingstore.service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,8 +13,11 @@ import com.example.virtualclothingstore.repository.CategoryRepository;
 @Service
 public class CategoryService {
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+    private final CategoryRepository categoryRepository;
+
+    public CategoryService(CategoryRepository categoryRepository) {
+        this.categoryRepository = categoryRepository;
+    }
 
     public List<Category> getAllCategories() {
         return categoryRepository.findAll();
@@ -53,7 +55,7 @@ public class CategoryService {
     public List<CategoryDTO> getAllCategoryDTOs() {
         return getAllCategories().stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Optional<CategoryDTO> getCategoryDTOById(Long id) {

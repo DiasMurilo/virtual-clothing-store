@@ -4,7 +4,6 @@ import com.example.virtualclothingstore.dto.ProductDTO;
 import com.example.virtualclothingstore.entity.Product;
 import com.example.virtualclothingstore.exception.ResourceNotFoundException;
 import com.example.virtualclothingstore.service.ProductService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,8 +16,11 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/products")
 public class ProductController {
 
-    @Autowired
-    private ProductService productService;
+    private final ProductService productService;
+
+    public ProductController(ProductService productService) {
+        this.productService = productService;
+    }
 
     @GetMapping({"", "/"})
     public Page<ProductDTO> getAllProducts(@RequestParam(defaultValue = "0") int page,

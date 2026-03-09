@@ -2,7 +2,6 @@ package com.example.virtualclothingstore.service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -33,7 +32,7 @@ public class CustomerService {
     }
 
     public List<CustomerDTO> getAllCustomerDTOs() {
-        return getAllCustomers().stream().map(this::toDTO).collect(Collectors.toList());
+        return getAllCustomers().stream().map(this::toDTO).toList();
     }
 
     public Optional<CustomerDTO> getCustomerDTOById(Long id) {

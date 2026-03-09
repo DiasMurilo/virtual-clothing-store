@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -62,7 +61,7 @@ public class OrderService {
     public Order createOrder(Long customerId, List<OrderItem> items) {
         Optional<Customer> customerOpt = customerService.getCustomerById(customerId);
         if (customerOpt.isEmpty()) {
-            throw new RuntimeException("Customer not found");
+            throw new ResourceNotFoundException("Customer not found");
         }
         Customer customer = customerOpt.get();
 
@@ -93,12 +92,12 @@ public class OrderService {
     public void addProductToOrder(Long orderId, Long productId, Integer quantity) {
         Optional<Order> orderOpt = orderRepository.findById(orderId);
         if (orderOpt.isEmpty()) {
-            throw new RuntimeException("Order not found");
+            throw new ResourceNotFoundException("Order not found");
         }
         Order order = orderOpt.get();
         ProductDTO productDto = catalogClient.getProductById(productId);
         if (productDto == null) {
-            throw new RuntimeException("Product not found");
+            throw new ResourceNotFoundException("Product not found");
         }
         Product product = dtoToProduct(productDto);
 
@@ -123,7 +122,7 @@ public class OrderService {
     public void removeProductFromOrder(Long orderId, Long productId) {
         Optional<Order> orderOpt = orderRepository.findById(orderId);
         if (orderOpt.isEmpty()) {
-            throw new RuntimeException("Order not found");
+            throw new ResourceNotFoundException("Order not found");
         }
         Order order = orderOpt.get();
 
@@ -150,7 +149,7 @@ public class OrderService {
         dto.setTotalAmount(order.getTotalAmount());
         dto.setItems(order.getOrderItems().stream()
                 .map(this::toOrderItemDTO)
-                .collect(Collectors.toList()));
+                .toList());
         return dto;
     }
 
@@ -226,7 +225,7 @@ public class OrderService {
     public List<OrderDTO> getAllOrderDTOs() {
         return getAllOrders().stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Page<OrderDTO> getAllOrderDTOs(Pageable pageable) {
@@ -241,7 +240,7 @@ public class OrderService {
     public List<OrderDTO> getOrderDTOsByCustomerId(Long customerId) {
         return getOrdersByCustomerId(customerId).stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Page<OrderDTO> getOrderDTOsByCustomerId(Long customerId, Pageable pageable) {
@@ -252,7 +251,7 @@ public class OrderService {
     public List<OrderDTO> getOrderDTOsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
         return getOrdersByDateRange(startDate, endDate).stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Page<OrderDTO> getOrderDTOsByDateRange(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
