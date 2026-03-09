@@ -47,6 +47,14 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <!-- ensure test JVM property to help ByteBuddy on Java25 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+                </configuration>
+            </plugin>
             <!-- JaCoCo plugin at parent level to allow aggregate reports across modules -->
             <plugin>
                 <groupId>org.jacoco</groupId>
