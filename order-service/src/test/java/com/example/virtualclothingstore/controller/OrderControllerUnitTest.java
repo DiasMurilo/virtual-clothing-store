@@ -65,7 +65,8 @@ public class OrderControllerUnitTest {
     @Test
     @DisplayName("addProductToOrder converts RuntimeException to BadRequest")
     void addProductToOrder_whenServiceThrows_translatesToBadRequest() {
-        when(orderService.addProductToOrder(1L, 2L, 1)).thenThrow(new RuntimeException("fail"));
+        // orderService.addProductToOrder is void, so use doThrow syntax
+        doThrow(new RuntimeException("fail")).when(orderService).addProductToOrder(1L, 2L, 1);
 
         assertThrows(BadRequestException.class, () -> {
             controller.addProductToOrder(1L, 2L, 1);
