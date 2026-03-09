@@ -63,13 +63,11 @@ class OrderControllerUnitTest {
     }
 
     @Test
-    @DisplayName("addProductToOrder converts RuntimeException to BadRequest")
-    void addProductToOrder_whenServiceThrows_translatesToBadRequest() {
-        doThrow(new RuntimeException("fail")).when(orderService).addProductToOrder(1L, 2L, 1);
+    @DisplayName("addProductToOrder propagates BadRequestException from service")
+    void addProductToOrder_whenServiceThrowsBadRequest_rethrowsBadRequest() {
+        doThrow(new BadRequestException("invalid quantity")).when(orderService).addProductToOrder(1L, 2L, 1);
 
-        assertThrows(BadRequestException.class, () -> {
-            controller.addProductToOrder(1L, 2L, 1);
-        });
+        assertThrows(BadRequestException.class, () -> controller.addProductToOrder(1L, 2L, 1));
     }
 
     @Test

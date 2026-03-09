@@ -72,22 +72,14 @@ public class OrderController {
     public ResponseEntity<Void> addProductToOrder(@PathVariable Long orderId,
                                                   @RequestParam Long productId,
                                                   @RequestParam Integer quantity) {
-        try {
-            orderService.addProductToOrder(orderId, productId, quantity);
-            return ResponseEntity.ok().build();
-        } catch (RuntimeException e) {
-            throw new BadRequestException(e.getMessage());
-        }
+        orderService.addProductToOrder(orderId, productId, quantity);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{orderId}/products/{productId}")
     public ResponseEntity<Void> removeProductFromOrder(@PathVariable Long orderId, @PathVariable Long productId) {
-        try {
-            orderService.removeProductFromOrder(orderId, productId);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            throw new BadRequestException(e.getMessage());
-        }
+        orderService.removeProductFromOrder(orderId, productId);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}")
