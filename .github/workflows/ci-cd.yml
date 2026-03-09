@@ -137,8 +137,9 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
-        # analyze only the order-service module so other packages don't drag down "new code" metrics
-        mvn -B verify sonar:sonar -pl order-service \
+        # run analysis within the module so Maven has a top-level project
+        cd order-service
+        mvn -B verify sonar:sonar \
           -Dsonar.projectKey=DiasMurilo_virtual-clothing-store \
           -Dsonar.organization=diasmurilo \
           -Dsonar.host.url=https://sonarcloud.io
