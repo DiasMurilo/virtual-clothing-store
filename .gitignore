@@ -1,0 +1,27 @@
+target/
+.bloop/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+.idea/
+.vscode/
+*.tmp
+.DS_Store
+
+# IDE / build artifacts
+.metals/
+*.iml
+
+# Docker-compose overrides or local env files
+docker-compose.override.yml
+.env
+
+# logs and reports generated
+**/.metals/**
+
+# ignore generated environment/trace and zipkin dumps
+env*.txt
+trace*.json
+zipkin*.json
