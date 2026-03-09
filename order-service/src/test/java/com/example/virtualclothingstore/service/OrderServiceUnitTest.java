@@ -28,21 +28,19 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
-import com.example.virtualclothingstore.dto.ProductDTO;
 import com.example.virtualclothingstore.dto.OrderDTO;
 import com.example.virtualclothingstore.dto.OrderItemDTO;
+import com.example.virtualclothingstore.dto.ProductDTO;
 import com.example.virtualclothingstore.entity.Customer;
 import com.example.virtualclothingstore.entity.Order;
 import com.example.virtualclothingstore.entity.OrderItem;
 import com.example.virtualclothingstore.entity.OrderStatus;
+import com.example.virtualclothingstore.exception.ResourceNotFoundException;
 import com.example.virtualclothingstore.repository.OrderItemRepository;
 import com.example.virtualclothingstore.repository.OrderRepository;
-import com.example.virtualclothingstore.exception.ResourceNotFoundException;
-import java.time.LocalDateTime;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.PageImpl;
 
 /**
  * Unit tests for OrderService using Mockito.
@@ -165,7 +163,7 @@ class OrderServiceUnitTest {
         when(customerService.getCustomerById(customerId)).thenReturn(Optional.empty());
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             orderService.createOrder(customerId, items);
         });
         assertEquals("Customer not found", exception.getMessage());
@@ -218,7 +216,7 @@ class OrderServiceUnitTest {
         when(orderRepository.findById(99L)).thenReturn(Optional.empty());
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             orderService.addProductToOrder(99L, 1L, 1);
         });
         assertEquals("Order not found", exception.getMessage());
@@ -235,7 +233,7 @@ class OrderServiceUnitTest {
         when(catalogClient.getProductById(99L)).thenReturn(null);
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             orderService.addProductToOrder(1L, 99L, 1);
         });
         assertEquals("Product not found", exception.getMessage());
