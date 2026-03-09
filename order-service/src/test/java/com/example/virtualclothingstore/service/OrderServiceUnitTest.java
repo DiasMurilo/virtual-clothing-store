@@ -30,12 +30,19 @@ import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.example.virtualclothingstore.dto.ProductDTO;
+import com.example.virtualclothingstore.dto.OrderDTO;
+import com.example.virtualclothingstore.dto.OrderItemDTO;
 import com.example.virtualclothingstore.entity.Customer;
 import com.example.virtualclothingstore.entity.Order;
 import com.example.virtualclothingstore.entity.OrderItem;
 import com.example.virtualclothingstore.entity.OrderStatus;
 import com.example.virtualclothingstore.repository.OrderItemRepository;
 import com.example.virtualclothingstore.repository.OrderRepository;
+import com.example.virtualclothingstore.exception.ResourceNotFoundException;
+import java.time.LocalDateTime;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageImpl;
 
 /**
  * Unit tests for OrderService using Mockito.
@@ -292,5 +299,130 @@ class OrderServiceUnitTest {
         // Assert
         assertEquals(testOrder, result);
         verify(orderRepository).save(testOrder);
+    }
+
+    @Test
+    @DisplayName("conversion methods produce correct DTOs")
+    void conversion_methods_work() {
+        // Arrange
+        OrderItemDTO itemDto = new OrderItemDTO();
+        itemDto.setId(5L);
+        itemDto.setProductId(2L);
+        itemDto.setProductName("X");
+        itemDto.setPrice(new BigDecimal("9.99"));
+        itemDto.setQuantity(3);
+
+        OrderItem item = new OrderItem();
+        item.setId(5L);
+        item.setProductId(2L);
+        item.setProductName("X");
+        item.setPrice(new BigDecimal("9.99"));
+        item.setQuantity(3);
+        item.setOrder(testOrder);
+
+        testOrder.setOrderItems(Arrays.asList(item));
+
+        // Act
+        OrderDTO dto = orderService.toDTO(testOrder);
+        OrderItemDTO dtoItem = orderService.toOrderItemDTO(item);
+
+        // Assert
+        assertEquals(testOrder.getId(), dto.getId());
+        assertEquals(testOrder.getCustomer().getId(), dto.getCustomerId());
+        assertEquals(testOrder.getTotalAmount(), dto.getTotalAmount());
+        assertEquals(1, dto.getItems().size());
+        OrderItemDTO first = dto.getItems().get(0);
+        assertEquals(item.getProductName(), first.getProductName());
+        assertEquals(item.getQuantity(), first.getQuantity());
+        assertEquals(item.getPrice(), first.getPrice());
+    }
+
+    @Test
+    @DisplayName("fromDTO builds order with customer and items")
+    void fromDTO_createsOrderCorrectly() {
+        // Arrange
+        OrderDTO dto = new OrderDTO();
+        dto.setId(10L);
+        dto.setCustomerId(testCustomer.getId());
+        dto.setStatus(OrderStatus.PENDING.name());
+        // leave total null so service computes it
+        // dto.setTotalAmount(new BigDecimal("0"));
+
+        OrderItemDTO iDto = new OrderItemDTO();
+        iDto.setProductId(1L);
+        iDto.setProductName("name");
+        iDto.setPrice(new BigDecimal("5"));
+        iDto.setQuantity(2);
+        dto.setItems(Arrays.asList(iDto));
+
+        when(customerService.getCustomerById(testCustomer.getId())).thenReturn(Optional.of(testCustomer));
+        ProductDTO prod = new ProductDTO();
+        prod.setId(1L);
+        prod.setName("name");
+        prod.setPrice(new BigDecimal("5"));
+        when(catalogClient.getProductById(1L)).thenReturn(prod);
+
+        // Act
+        Order result = orderService.fromDTO(dto);
+
+        // Assert
+        assertEquals(dto.getCustomerId(), result.getCustomer().getId());
+        assertEquals(new BigDecimal("10"), result.getTotalAmount());
+        assertEquals(1, result.getOrderItems().size());
+    }
+
+    @Test
+    @DisplayName("fromDTO throws when product missing")
+    void fromDTO_productMissing_throws() {
+        // Arrange
+        OrderDTO dto = new OrderDTO();
+        dto.setCustomerId(testCustomer.getId());
+        OrderItemDTO iDto = new OrderItemDTO();
+        iDto.setProductId(99L);
+        dto.setItems(Arrays.asList(iDto));
+        when(customerService.getCustomerById(testCustomer.getId())).thenReturn(Optional.of(testCustomer));
+        when(catalogClient.getProductById(99L)).thenReturn(null);
+
+        // Act & Assert
+        assertThrows(ResourceNotFoundException.class, () -> orderService.fromDTO(dto));
+    }
+
+    @Test
+    @DisplayName("DTO pagination wrappers delegate correctly")
+    void pagination_wrappers() {
+        // Arrange
+        Page<Order> page = new org.springframework.data.domain.PageImpl<>(Arrays.asList(testOrder));
+        when(orderRepository.findAll(any(Pageable.class))).thenReturn(page);
+        when(orderRepository.findByCustomerId(any(Long.class), any(Pageable.class))).thenReturn(page);
+        when(orderRepository.findByOrderDateBetween(any(LocalDateTime.class), any(LocalDateTime.class), any(Pageable.class))).thenReturn(page);
+
+        // Act
+        Page<OrderDTO> p1 = orderService.getAllOrderDTOs(Pageable.unpaged());
+        Page<OrderDTO> p2 = orderService.getOrderDTOsByCustomerId(1L, Pageable.unpaged());
+        Page<OrderDTO> p3 = orderService.getOrderDTOsByDateRange(LocalDateTime.now(), LocalDateTime.now(), Pageable.unpaged());
+
+        // Assert
+        assertEquals(1, p1.getTotalElements());
+        assertEquals(1, p2.getTotalElements());
+        assertEquals(1, p3.getTotalElements());
+    }
+
+    @Test
+    @DisplayName("getAllOrderDTOs should map results")
+    void getAllOrderDTOs_returnsMappedList() {
+        List<Order> list = Arrays.asList(testOrder);
+        when(orderRepository.findAll()).thenReturn(list);
+        List<OrderDTO> dtos = orderService.getAllOrderDTOs();
+        assertEquals(1, dtos.size());
+        assertEquals(testOrder.getId(), dtos.get(0).getId());
+    }
+
+    @Test
+    @DisplayName("getOrderDTOById should return DTO when found")
+    void getOrderDTOById_returnsMappedOptional() {
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        Optional<OrderDTO> dto = orderService.getOrderDTOById(1L);
+        assertTrue(dto.isPresent());
+        assertEquals(testOrder.getId(), dto.get().getId());
     }
 }
