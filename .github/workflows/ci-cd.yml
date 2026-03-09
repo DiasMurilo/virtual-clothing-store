@@ -42,7 +42,14 @@ jobs:
     - name: Run Docker container (basic test)
       run: |
         docker run -d --name test-app -p 8080:8080 virtual-clothing-store
-        sleep 30  # Wait for app to start
-        curl -f http://localhost:8080/ || exit 1  # Basic health check using home endpoint
+        # wait until health endpoint responds, retrying in case startup is slow
+        for i in {1..30}; do
+          if curl -fsS http://localhost:8080/actuator/health; then
+            break
+          fi
+          sleep 2
+        done
+        # final assertion
+        curl -fsS http://localhost:8080/actuator/health || exit 1
         docker stop test-app
         docker rm test-app
