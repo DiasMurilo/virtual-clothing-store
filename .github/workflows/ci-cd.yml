@@ -138,8 +138,7 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
         # analyze only the order-service module so other packages don't drag down "new code" metrics
-        cd order-service
-        mvn -B verify sonar:sonar \
+        mvn -B -f order-service/pom.xml verify sonar:sonar \
           -Dsonar.projectKey=DiasMurilo_virtual-clothing-store \
           -Dsonar.organization=diasmurilo \
           -Dsonar.host.url=https://sonarcloud.io
