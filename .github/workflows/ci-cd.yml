@@ -154,7 +154,8 @@ jobs:
     name: Package Application
     runs-on: ubuntu-latest
     needs: code-quality
-    if: github.event_name == 'push' || github.repository == github.base_ref
+    # only execute when code is pushed to the Assignment1_CICD branch
+    if: github.ref == 'refs/heads/Assignment1_CICD'
     permissions:
       contents: read
       packages: write
@@ -215,7 +216,8 @@ jobs:
     name: Deploy Application
     runs-on: ubuntu-latest
     needs: package
-    if: github.ref == 'refs/heads/Assignment1_CICD' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    # restrict deployment to Assignment1_CICD branch only (no master/main)
+    if: github.ref == 'refs/heads/Assignment1_CICD'
     
     steps:
     - name: Checkout code
