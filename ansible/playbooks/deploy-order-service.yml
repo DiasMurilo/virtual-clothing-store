@@ -14,7 +14,9 @@
     docker_image: "{{ docker_image | default('ghcr.io/diasmurilo/virtual-clothing-store:latest') }}"
     # compute normalized version used by tasks to avoid "invalid reference format" errors
     normalized_docker_image: "{{ (docker_image.split(':')[0] | lower) + (':' + docker_image.split(':')[1] if ':' in docker_image else '') }}"
-    container_port: 8081
+    # the Spring Boot app listens on 8080 in docker profile
+    container_port: 8080
+    # choose a host port for mapping (use 8081 to avoid conflict with runner services)
     host_port: 8081
     health_endpoint: "http://localhost:{{ host_port }}/actuator/health"
     max_health_check_retries: 30
@@ -93,7 +95,7 @@
         state: started
         restart_policy: unless-stopped
         published_ports:
-          - "{{ host_port }}:{{ container_port }}"
+          - "{{ host_port }}:{{ container_port }}"  # host:container (host 8081 -> container 8080)
         networks:
           - name: "{{ docker_network }}"
         env:
