@@ -154,6 +154,7 @@ jobs:
     name: Package Application
     runs-on: ubuntu-latest
     needs: code-quality
+    if: github.event_name == 'push' || github.repository == github.base_ref
     permissions:
       contents: read
       packages: write
