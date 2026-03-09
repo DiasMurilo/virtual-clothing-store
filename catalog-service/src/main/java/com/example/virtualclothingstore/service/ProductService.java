@@ -12,9 +12,8 @@ import org.springframework.stereotype.Service;
 import com.example.virtualclothingstore.dto.ProductDTO;
 import com.example.virtualclothingstore.entity.Category;
 import com.example.virtualclothingstore.entity.Product;
-import com.example.virtualclothingstore.repository.ProductRepository;
-import com.example.virtualclothingstore.service.CategoryService;
 import com.example.virtualclothingstore.exception.ResourceNotFoundException;
+import com.example.virtualclothingstore.repository.ProductRepository;
 
 @Service
 public class ProductService {

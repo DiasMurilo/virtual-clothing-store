@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.virtualclothingstore.dto.OrderDTO;
 import com.example.virtualclothingstore.entity.Order;
-import com.example.virtualclothingstore.exception.BadRequestException;
 import com.example.virtualclothingstore.exception.ResourceNotFoundException;
 import com.example.virtualclothingstore.service.OrderService;
 
