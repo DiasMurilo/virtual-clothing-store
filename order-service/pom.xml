@@ -110,7 +110,27 @@
                             <goal>report</goal>
                         </goals>
                     </execution>
+                    <!-- Generate XML report for SonarQube -->
+                    <execution>
+                        <id>jacoco-report-xml</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <formats>
+                                <format>XML</format>
+                            </formats>
+                        </configuration>
+                    </execution>
                 </executions>
+            </plugin>
+            
+            <!-- SonarQube Scanner for code quality analysis -->
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>3.11.0.3922</version>
             </plugin>
         </plugins>
     </build>

@@ -1,0 +1,145 @@
+---
+# Ansible Playbook: Deploy Order Service
+# This playbook automates the deployment of the order-service microservice
+# It handles Docker image pulling, container management, and health verification
+
+- name: Deploy Order Service to Target Environment
+  hosts: localhost
+  become: false
+  gather_facts: true
+
+  vars:
+    container_name: "order-service"
+    docker_image: "{{ docker_image | default('ghcr.io/diasmurilo/virtual-clothing-store:latest') }}"
+    container_port: 8081
+    host_port: 8081
+    health_endpoint: "http://localhost:{{ host_port }}/actuator/health"
+    max_health_check_retries: 30
+    health_check_delay: 2
+
+  tasks:
+    - name: Display deployment information
+      debug:
+        msg:
+          - "=========================================="
+          - "Deploying Order Service"
+          - "Image: {{ docker_image }}"
+          - "Container: {{ container_name }}"
+          - "Port: {{ host_port }}"
+          - "=========================================="
+
+    - name: Ensure Docker is installed
+      command: docker --version
+      register: docker_version
+      changed_when: false
+      failed_when: docker_version.rc != 0
+
+    - name: Display Docker version
+      debug:
+        msg: "Docker version: {{ docker_version.stdout }}"
+
+    - name: Create Docker network if it doesn't exist
+      community.docker.docker_network:
+        name: "{{ docker_network }}"
+        state: present
+      ignore_errors: true
+
+    - name: Log in to GitHub Container Registry
+      community.docker.docker_login:
+        registry: ghcr.io
+        username: "{{ lookup('env', 'GITHUB_ACTOR') | default('diasmurilo') }}"
+        password: "{{ github_token }}"
+        reauthorize: true
+      when: github_token is defined
+      no_log: true
+
+    - name: Pull latest Docker image
+      community.docker.docker_image:
+        name: "{{ docker_image }}"
+        source: pull
+        force_source: true
+      register: image_pull
+      retries: 3
+      delay: 5
+      until: image_pull is success
+
+    - name: Check if container is already running
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_info
+      ignore_errors: true
+
+    - name: Stop existing container if running
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: stopped
+      when: container_info.exists
+      ignore_errors: true
+
+    - name: Remove existing container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: absent
+      when: container_info.exists
+      ignore_errors: true
+
+    - name: Deploy Order Service container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        image: "{{ docker_image }}"
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - "{{ host_port }}:{{ container_port }}"
+        networks:
+          - name: "{{ docker_network }}"
+        env:
+          SPRING_PROFILES_ACTIVE: "docker"
+          EUREKA_CLIENT_ENABLED: "false"
+          SPRING_CLOUD_DISCOVERY_ENABLED: "false"
+          SPRING_DATASOURCE_URL: "jdbc:h2:mem:testdb"
+          SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.h2.Driver"
+          SPRING_JPA_DATABASE_PLATFORM: "org.hibernate.dialect.H2Dialect"
+        healthcheck:
+          test: ["CMD-SHELL", "curl -f http://localhost:{{ container_port }}/actuator/health || exit 1"]
+          interval: 10s
+          timeout: 5s
+          retries: 5
+          start_period: 40s
+      register: container_deploy
+
+    - name: Wait for application to start
+      pause:
+        seconds: 15
+        prompt: "Waiting for Order Service to start..."
+
+    - name: Verify application health
+      uri:
+        url: "{{ health_endpoint }}"
+        method: GET
+        status_code: 200
+        timeout: 5
+      register: health_check
+      retries: "{{ max_health_check_retries }}"
+      delay: "{{ health_check_delay }}"
+      until: health_check.status == 200
+
+    - name: Display deployment success message
+      debug:
+        msg:
+          - "=========================================="
+          - "✅ Deployment Successful!"
+          - "Container: {{ container_name }}"
+          - "Status: {{ container_deploy.container.State.Status }}"
+          - "Health: {{ health_check.status }}"
+          - "Endpoint: {{ health_endpoint }}"
+          - "=========================================="
+
+    - name: Show container logs (last 20 lines)
+      command: docker logs --tail 20 {{ container_name }}
+      register: container_logs
+      changed_when: false
+
+    - name: Display container logs
+      debug:
+        msg: "{{ container_logs.stdout_lines }}"

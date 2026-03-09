@@ -2,54 +2,237 @@ name: CI/CD Pipeline for Virtual Clothing Store
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, Assignment1_CICD ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, Assignment1_CICD ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-test:
+  # Stage 1: Build
+  build:
+    name: Build Application
     runs-on: ubuntu-latest
-
+    
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for SonarCloud
 
     - name: Set up JDK 21
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: '21'
         distribution: 'temurin'
-
-    - name: Cache Maven packages
-      uses: actions/cache@v3
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        cache: 'maven'
 
     - name: Build with Maven
-      run: mvn clean compile
+      run: mvn clean compile -B
 
-    - name: Run tests
-      run: mvn test
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: |
+          **/target/classes
+          **/target/generated-sources
+        retention-days: 1
+
+  # Stage 2: Test
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: 'maven'
+
+    - name: Run unit, integration, and E2E tests
+      run: mvn test -B
+
+    - name: Generate JaCoCo coverage report
+      run: mvn jacoco:report -pl order-service
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          **/target/surefire-reports
+          **/target/site/jacoco
+        retention-days: 7
+
+    - name: Publish test results summary
+      if: always()
+      uses: dorny/test-reporter@v1
+      with:
+        name: Test Results
+        path: '**/target/surefire-reports/TEST-*.xml'
+        reporter: java-junit
+        fail-on-error: true
+
+  # Stage 3: Code Quality Analysis
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for better analysis
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: 'maven'
+
+    - name: Cache SonarCloud packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+
+    - name: Run tests with coverage
+      run: mvn clean test jacoco:report -pl order-service
+
+    - name: SonarCloud Analysis
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        mvn -B verify sonar:sonar \
+          -Dsonar.projectKey=DiasMurilo_virtual-clothing-store \
+          -Dsonar.organization=diasmurilo \
+          -Dsonar.host.url=https://sonarcloud.io
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: order-service/target/site/jacoco
+        retention-days: 7
+
+  # Stage 4: Package & Docker Build
+  package:
+    name: Package Application
+    runs-on: ubuntu-latest
+    needs: code-quality
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: 'maven'
 
     - name: Package application
-      run: mvn package -DskipTests
+      run: mvn package -DskipTests -B
 
-    - name: Build Docker image
-      run: docker build -t virtual-clothing-store .
+    - name: Upload JAR artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: application-jars
+        path: |
+          **/target/*.jar
+          !**/target/*-javadoc.jar
+          !**/target/*-sources.jar
+        retention-days: 7
 
-    - name: Run Docker container (basic test)
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata for Docker
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=sha,prefix={{branch}}-
+          type=ref,event=branch
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        build-args: |
+          MODULE=order-service
+
+  # Stage 5: Deploy
+  deploy:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+    needs: package
+    if: github.ref == 'refs/heads/Assignment1_CICD' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python for Ansible
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Ansible
       run: |
-        docker run -d --name test-app -p 8080:8080 virtual-clothing-store
-        # wait until health endpoint responds, retrying in case startup is slow
-        for i in {1..30}; do
-          if curl -fsS http://localhost:8080/actuator/health; then
-            break
-          fi
-          sleep 2
-        done
-        # final assertion
-        curl -fsS http://localhost:8080/actuator/health || exit 1
-        docker stop test-app
-        docker rm test-app
+        python -m pip install --upgrade pip
+        pip install ansible docker
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Deploy with Ansible
+      run: |
+        cd ansible
+        ansible-playbook -i inventory/hosts.yml playbooks/deploy-order-service.yml \
+          -e "docker_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ github.sha }}" \
+          -e "github_token=${{ secrets.GITHUB_TOKEN }}"
+
+    - name: Verify deployment
+      run: |
+        sleep 10
+        curl -fsS http://localhost:8081/actuator/health || exit 1
+        echo "✅ Deployment successful - application is healthy"
+
+    - name: Deployment summary
+      run: |
+        echo "### Deployment Summary :rocket:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Image**: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: ✅ Healthy" >> $GITHUB_STEP_SUMMARY
+        echo "- **Health Check**: http://localhost:8081/actuator/health" >> $GITHUB_STEP_SUMMARY
