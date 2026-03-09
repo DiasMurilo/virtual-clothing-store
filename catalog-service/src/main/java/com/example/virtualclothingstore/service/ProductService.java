@@ -14,6 +14,7 @@ import com.example.virtualclothingstore.entity.Category;
 import com.example.virtualclothingstore.entity.Product;
 import com.example.virtualclothingstore.repository.ProductRepository;
 import com.example.virtualclothingstore.service.CategoryService;
+import com.example.virtualclothingstore.exception.ResourceNotFoundException;
 
 @Service
 public class ProductService {
@@ -64,7 +65,7 @@ public class ProductService {
         // Set category
         if (dto.getCategoryId() != null) {
             Category category = categoryService.getCategoryById(dto.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Category not found with id: " + dto.getCategoryId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + dto.getCategoryId()));
             product.setCategory(category);
         } else {
             // Assign default category
