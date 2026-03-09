@@ -198,5 +198,5 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
-          type=branch,branch=${{ github.ref_name }}
+          type=ref,ref=${{ github.ref_name }}
           type=sha
