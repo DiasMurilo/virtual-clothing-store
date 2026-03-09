@@ -27,6 +27,47 @@
         <spring-cloud.version>2023.0.5</spring-cloud.version>
         <!-- bump Spring Framework separately to satisfy Gateway's headerSet dependency -->
         <spring-framework.version>6.1.15</spring-framework.version>
+
+        <!-- ── Sonar properties (must be in POM; sonar-project.properties is
+                  ignored by mvn sonar:sonar) ── -->
+        <sonar.projectKey>DiasMurilo_virtual-clothing-store</sonar.projectKey>
+        <sonar.organization>diasmurilo</sonar.organization>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <sonar.java.source>21</sonar.java.source>
+        <sonar.java.target>21</sonar.java.target>
+        <sonar.sourceEncoding>UTF-8</sonar.sourceEncoding>
+
+        <!-- JaCoCo: pick up both per-module and aggregate XML reports -->
+        <sonar.coverage.jacoco.xmlReportPaths>
+            ${project.basedir}/target/site/jacoco/jacoco.xml,
+            ${project.basedir}/target/site/jacoco-aggregate/jacoco.xml
+        </sonar.coverage.jacoco.xmlReportPaths>
+
+        <!-- Coverage exclusions: skip boilerplate that can't realistically
+             be unit-tested (DTOs, JPA entities, Spring Application stubs) -->
+        <sonar.coverage.exclusions>
+            **/dto/**,**/entity/**,
+            **/service/CatalogClient*.java,
+            **/*Application.java
+        </sonar.coverage.exclusions>
+
+        <!-- CPD exclusions: these files are intentionally near-identical
+             across modules (getter/setter boilerplate, JPA mapping, Spring
+             ControllerAdvice pattern).  Tell Sonar to skip them for duplication. -->
+        <sonar.cpd.exclusions>
+            **/dto/**,
+            **/entity/**,
+            **/exception/**,
+            **/repository/**,
+            **/*Application.java
+        </sonar.cpd.exclusions>
+
+        <!-- Do not scan build output or third-party resources -->
+        <sonar.exclusions>**/target/**,**/node_modules/**</sonar.exclusions>
+
+        <!-- Wait for the Quality Gate result before failing the build -->
+        <sonar.qualitygate.wait>true</sonar.qualitygate.wait>
+        <sonar.qualitygate.timeout>300</sonar.qualitygate.timeout>
     </properties>
 
     <dependencyManagement>
