@@ -98,7 +98,7 @@ public class OrderService {
         Order order = orderOpt.get();
         ProductDTO productDto = catalogClient.getProductById(productId);
         if (productDto == null) {
-            throw new RuntimeException("Product not found");
+            throw new ResourceNotFoundException("Product not found");
         }
         Product product = dtoToProduct(productDto);
 
@@ -150,7 +150,7 @@ public class OrderService {
         dto.setTotalAmount(order.getTotalAmount());
         dto.setItems(order.getOrderItems().stream()
                 .map(this::toOrderItemDTO)
-                .collect(Collectors.toList()));
+                .toList());
         return dto;
     }
 
@@ -226,7 +226,7 @@ public class OrderService {
     public List<OrderDTO> getAllOrderDTOs() {
         return getAllOrders().stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Page<OrderDTO> getAllOrderDTOs(Pageable pageable) {
@@ -241,7 +241,7 @@ public class OrderService {
     public List<OrderDTO> getOrderDTOsByCustomerId(Long customerId) {
         return getOrdersByCustomerId(customerId).stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Page<OrderDTO> getOrderDTOsByCustomerId(Long customerId, Pageable pageable) {
@@ -252,7 +252,7 @@ public class OrderService {
     public List<OrderDTO> getOrderDTOsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
         return getOrdersByDateRange(startDate, endDate).stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Page<OrderDTO> getOrderDTOsByDateRange(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {

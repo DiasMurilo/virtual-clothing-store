@@ -33,7 +33,7 @@ public class CustomerService {
     }
 
     public List<CustomerDTO> getAllCustomerDTOs() {
-        return getAllCustomers().stream().map(this::toDTO).collect(Collectors.toList());
+        return getAllCustomers().stream().map(this::toDTO).toList();
     }
 
     public Optional<CustomerDTO> getCustomerDTOById(Long id) {
