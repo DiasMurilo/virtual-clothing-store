@@ -1,17 +1,18 @@
 package com.example.virtualclothingstore.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
-
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
@@ -65,7 +66,6 @@ public class OrderControllerUnitTest {
     @Test
     @DisplayName("addProductToOrder converts RuntimeException to BadRequest")
     void addProductToOrder_whenServiceThrows_translatesToBadRequest() {
-        // orderService.addProductToOrder is void, so use doThrow syntax
         doThrow(new RuntimeException("fail")).when(orderService).addProductToOrder(1L, 2L, 1);
 
         assertThrows(BadRequestException.class, () -> {
