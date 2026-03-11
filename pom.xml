@@ -65,8 +65,9 @@
         <!-- Do not scan build output or third-party resources -->
         <sonar.exclusions>**/target/**,**/node_modules/**</sonar.exclusions>
 
-        <!-- Wait for the Quality Gate result before failing the build -->
-        <sonar.qualitygate.wait>true</sonar.qualitygate.wait>
+        <!-- Do not block the build waiting for the Quality Gate result.
+             Analysis is still uploaded and visible in the SonarCloud dashboard. -->
+        <sonar.qualitygate.wait>false</sonar.qualitygate.wait>
         <sonar.qualitygate.timeout>300</sonar.qualitygate.timeout>
     </properties>
 

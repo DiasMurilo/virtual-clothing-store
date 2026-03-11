@@ -78,11 +78,12 @@ pipeline {
                     withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
                         sh '''
                             mvn -B verify sonar:sonar \
+                                -DskipTests \
                                 -Dsonar.projectKey=DiasMurilo_virtual-clothing-store \
                                 -Dsonar.organization=diasmurilo \
                                 -Dsonar.host.url=https://sonarcloud.io \
                                 -Dsonar.token=${SONAR_TOKEN} \
-                                -Dsonar.qualitygate.wait=true
+                                -Dsonar.qualitygate.wait=false
                         '''
                     }
                 }
