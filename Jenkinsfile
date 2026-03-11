@@ -7,7 +7,9 @@ pipeline {
         // GitHub Container Registry (optional – only used in Package stage)
         REGISTRY          = 'ghcr.io'
         IMAGE_NAME        = 'diasmurilo/virtual-clothing-store'
+        // GHCR_TOKEN is optional; pipeline will skip pushes if not defined
         GHCR_TOKEN        = credentials('ghcr-token')   // GitHub PAT with packages:write
+
     }
 
     tools {
@@ -110,10 +112,16 @@ pipeline {
 
                 sh 'mvn package -DskipTests -B'
 
-                // Log in to GitHub Container Registry
-                sh 'echo ${GHCR_TOKEN} | docker login ghcr.io -u diasmurilo --password-stdin'
+                // Optionally log in to GitHub Container Registry if token supplied
+                script {
+                    if (env.GHCR_TOKEN) {
+                        sh 'echo ${GHCR_TOKEN} | docker login ghcr.io -u diasmurilo --password-stdin'
+                    } else {
+                        echo 'GHCR_TOKEN not defined; skipping login and push steps.'
+                    }
+                }
 
-                // Build and push one image per module
+                // Build Docker images for each module (push only if logged in)
                 sh '''
                     for MODULE in discovery-server config-server api-gateway catalog-service order-service; do
                         IMAGE=${REGISTRY}/${IMAGE_NAME}/${MODULE}
@@ -122,8 +130,10 @@ pipeline {
                             -t ${IMAGE}:${BUILD_NUMBER} \
                             -t ${IMAGE}:latest \
                             .
-                        docker push ${IMAGE}:${BUILD_NUMBER}
-                        docker push ${IMAGE}:latest
+                        if [ -n "${GHCR_TOKEN}" ]; then
+                            docker push ${IMAGE}:${BUILD_NUMBER}
+                            docker push ${IMAGE}:latest
+                        fi
                     done
                 '''
             }
