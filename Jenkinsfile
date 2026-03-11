@@ -2,12 +2,10 @@ pipeline {
     agent any
 
     environment {
-        // SonarCloud – add a Jenkins Secret Text credential with id 'sonar-token'
-        SONAR_TOKEN       = credentials('sonar-token')
         // GitHub Container Registry
         REGISTRY          = 'ghcr.io'
         IMAGE_NAME        = 'diasmurilo/virtual-clothing-store'
-        // GHCR_TOKEN is bound inside the Package stage only (optional)
+        // SONAR_TOKEN and GHCR_TOKEN are bound inside their stages only (optional)
     }
 
     tools {
@@ -87,14 +85,18 @@ pipeline {
         stage('Code Quality') {
             steps {
                 echo '=== Stage 3: SonarCloud analysis ==='
-                sh '''
-                    mvn -B verify sonar:sonar \
-                        -Dsonar.projectKey=DiasMurilo_virtual-clothing-store \
-                        -Dsonar.organization=diasmurilo \
-                        -Dsonar.host.url=https://sonarcloud.io \
-                        -Dsonar.token=${SONAR_TOKEN} \
-                        -Dsonar.qualitygate.wait=true
-                '''
+                script {
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                        sh '''
+                            mvn -B verify sonar:sonar \
+                                -Dsonar.projectKey=DiasMurilo_virtual-clothing-store \
+                                -Dsonar.organization=diasmurilo \
+                                -Dsonar.host.url=https://sonarcloud.io \
+                                -Dsonar.token=${SONAR_TOKEN} \
+                                -Dsonar.qualitygate.wait=true
+                        '''
+                    }
+                }
             }
             post {
                 failure { echo 'Quality gate FAILED – aborting pipeline.' }
