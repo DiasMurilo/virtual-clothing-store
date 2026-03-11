@@ -4,12 +4,10 @@ pipeline {
     environment {
         // SonarCloud – add a Jenkins Secret Text credential with id 'sonar-token'
         SONAR_TOKEN       = credentials('sonar-token')
-        // GitHub Container Registry (optional – only used in Package stage)
+        // GitHub Container Registry
         REGISTRY          = 'ghcr.io'
         IMAGE_NAME        = 'diasmurilo/virtual-clothing-store'
-        // GHCR_TOKEN is optional; pipeline will skip pushes if not defined
-        GHCR_TOKEN        = credentials('ghcr-token')   // GitHub PAT with packages:write
-
+        // GHCR_TOKEN is bound inside the Package stage only (optional)
     }
 
     tools {
@@ -112,16 +110,20 @@ pipeline {
 
                 sh 'mvn package -DskipTests -B'
 
-                // Optionally log in to GitHub Container Registry if token supplied
+                // Try to log in to GHCR if the credential exists (optional)
                 script {
-                    if (env.GHCR_TOKEN) {
-                        sh 'echo ${GHCR_TOKEN} | docker login ghcr.io -u diasmurilo --password-stdin'
-                    } else {
-                        echo 'GHCR_TOKEN not defined; skipping login and push steps.'
+                    try {
+                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
+                            sh 'echo ${GHCR_TOKEN} | docker login ghcr.io -u diasmurilo --password-stdin'
+                            env.GHCR_LOGGED_IN = 'true'
+                        }
+                    } catch (e) {
+                        echo 'ghcr-token credential not found – images will be built locally only (no push).'
+                        env.GHCR_LOGGED_IN = 'false'
                     }
                 }
 
-                // Build Docker images for each module (push only if logged in)
+                // Build Docker images for each module
                 sh '''
                     for MODULE in discovery-server config-server api-gateway catalog-service order-service; do
                         IMAGE=${REGISTRY}/${IMAGE_NAME}/${MODULE}
@@ -130,12 +132,21 @@ pipeline {
                             -t ${IMAGE}:${BUILD_NUMBER} \
                             -t ${IMAGE}:latest \
                             .
-                        if [ -n "${GHCR_TOKEN}" ]; then
-                            docker push ${IMAGE}:${BUILD_NUMBER}
-                            docker push ${IMAGE}:latest
-                        fi
                     done
                 '''
+
+                // Push only when logged in
+                script {
+                    if (env.GHCR_LOGGED_IN == 'true') {
+                        sh '''
+                            for MODULE in discovery-server config-server api-gateway catalog-service order-service; do
+                                IMAGE=${REGISTRY}/${IMAGE_NAME}/${MODULE}
+                                docker push ${IMAGE}:${BUILD_NUMBER}
+                                docker push ${IMAGE}:latest
+                            done
+                        '''
+                    }
+                }
             }
             post {
                 always {
@@ -205,7 +216,9 @@ pipeline {
             echo 'Pipeline FAILED – review the stage that turned red above.'
         }
         always {
-            cleanWs()   // clean workspace after every run
+            node('built-in') {
+                cleanWs()   // clean workspace after every run
+            }
         }
     }
 }
