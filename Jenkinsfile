@@ -44,21 +44,10 @@ pipeline {
             steps {
                 echo '=== Stage 2: Running unit, integration and E2E tests ==='
 
-                // Make config-server reachable by hostname during integration tests
-                sh 'echo "127.0.0.1 config-server" | sudo tee -a /etc/hosts'
-
-                // Start the config server in the background
-                sh '''
-                    mvn -pl config-server spring-boot:run \
-                        -Dspring.profiles.active=native &
-                    sleep 15
-                '''
-
-                // Run the full test suite
-                sh 'mvn test -B'
-
-                // Generate aggregated JaCoCo report
-                sh 'mvn clean test jacoco:report-aggregate -B'
+                // Run the full test suite and generate aggregated JaCoCo report in one pass.
+                // Tests use @DataJpaTest / @WebMvcTest slices so no running config-server is needed.
+                // Do NOT add 'clean' here – it would delete the .exec files needed by report-aggregate.
+                sh 'mvn test jacoco:report-aggregate -B'
             }
             post {
                 always {
