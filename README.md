@@ -80,6 +80,54 @@ cd catalog-service
 mvn test
 ```
 
+## CI/CD Pipeline
+
+Continuous integration is performed by a GitHub Actions workflow
+located at `.github/workflows/ci-cd.yml`.  The pipeline is organised into
+four sequential jobs that correspond to the assignment requirements:
+
+1. **Build** – checks out the repository, sets up JDK 21 with Maven
+   caching, and runs `mvn clean compile` across the multi‑module project to
+   verify that the code compiles successfully.  Artifacts (class files and
+   generated sources) are uploaded for later jobs.
+
+2. **Test** – depends on the build job.  It adds the config‑server hostname
+   to `/etc/hosts` and starts `config-server` in the background so that
+   integration and end‑to‑end tests can load remote configuration.  The step
+   executes `mvn test` (unit, integration and E2E) and then invokes
+   `jacoco:report-aggregate` to produce a coverage report.  Test results and
+   JaCoCo reports are uploaded as workflow artifacts, and the
+   `dorny/test-reporter` action publishes a summary in the GitHub checks UI.
+   This satisfies the requirement for automated testing and coverage
+   measurement with JUnit, Mockito and JaCoCo.
+
+3. **Code Quality Analysis** – runs after tests.  It caches SonarCloud data
+   to speed future runs, reruns the tests with coverage to ensure the report
+   is available, and then invokes the Maven Sonar plugin with the
+   `-Dsonar.projectKey`, `-Dsonar.organization` and related properties.  Key
+   properties such as `sonar.cpd.exclusions` and
+   `sonar.coverage.exclusions` are defined in the parent POM so that the
+   Maven goal reads them.  The SonarCloud step enforces the quality gate
+   (coverage thresholds, duplication limits, no new bugs/vulnerabilities)
+   before allowing the pipeline to proceed.
+
+4. **Package & Docker Build** – triggered only on the `master`/`main` branch
+   after the code‑quality job succeeds.  It packages all modules with
+   `mvn package -DskipTests` and uploads the resulting JARs as artifacts.
+   The job then logs in to the GitHub Container Registry and builds
+   container images using `docker/metadata-action` to tag them appropriately;
+   finally, the images are pushed to GHCR.  This fulfils the assignment's
+   requirement to produce deployable artifacts and publish them to a
+   registry.
+
+The workflow listens for `push` and `pull_request` events on `main`/`master`.
+Secrets used are `SONAR_TOKEN` (for SonarCloud authentication) and the
+built‑in `GITHUB_TOKEN` (for status updates and GHCR login).  By structuring
+jobs with `needs:` dependencies and caching, the pipeline provides fast,
+repeatable feedback and ensures that only code meeting the quality gate is
+merged.
+
+
 ### Interacting
 
 Once the stack is up wait a few seconds for Eureka to populate, then:
