@@ -22,7 +22,7 @@ pipeline {
         REGISTRY   = 'ghcr.io'
         IMAGE_NAME = 'diasmurilo/virtual-clothing-store'
         GITHUB_REPO = 'DiasMurilo/virtual-clothing-store'
-        BRANCH      = 'CICD_Assignment1_Finished'
+        BRANCH      = 'master'
     }
 
     tools {
@@ -166,22 +166,22 @@ else:
                 echo '=== Stage 2: Deploying with Docker Compose ==='
 
                 // Graceful shutdown of the previous version
-                sh 'docker compose down --remove-orphans || true'
+                sh 'docker-compose down --remove-orphans || true'
 
                 // Bring the full stack up in detached mode using the images
                 // built in the Package stage (--no-build skips redundant rebuilds)
-                sh 'docker compose up -d'
+                sh 'docker-compose up -d'
 
                 // Wait for services to stabilise, then assert no container exited
                 sh '''
                     echo "Waiting 30 s for containers to start..."
                     sleep 30
-                    docker compose ps
+                    docker-compose ps
 
-                    UNHEALTHY=$(docker compose ps --status exited -q | wc -l)
+                    UNHEALTHY=$(docker-compose ps | grep -c " Exit " || true)
                     if [ "$UNHEALTHY" -gt "0" ]; then
                         echo "One or more containers exited unexpectedly:"
-                        docker compose logs --tail=60
+                        docker-compose logs --tail=60
                         exit 1
                     fi
                     echo "All services are running successfully."
