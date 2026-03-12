@@ -1,23 +1,35 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Jenkins CD Pipeline – Virtual Clothing Store
+//
+// Responsibility: Package → Deploy  (Continuous Delivery)
+//
+// Build, Test, and Code Quality (CI) are handled by the GitHub Actions workflow
+// (.github/workflows/ci-cd.yml) which runs on every push and triggers this
+// pipeline via the Jenkins REST API once all checks pass.
+//
+// This pipeline therefore NEVER re-runs the test suite; it only produces
+// deployable artefacts and brings the stack up with the new versions.
+// ─────────────────────────────────────────────────────────────────────────────
 pipeline {
     agent any
 
+    parameters {
+        // SHA passed by the GitHub Actions trigger (informational only)
+        string(name: 'GIT_SHA', defaultValue: '', description: 'Commit SHA that triggered this deployment')
+    }
+
     environment {
-        // GitHub Container Registry
-        REGISTRY          = 'ghcr.io'
-        IMAGE_NAME        = 'diasmurilo/virtual-clothing-store'
-        // SONAR_TOKEN and GHCR_TOKEN are bound inside their stages only (optional)
+        REGISTRY   = 'ghcr.io'
+        IMAGE_NAME = 'diasmurilo/virtual-clothing-store'
     }
 
     tools {
-        // Names must match what you configured under Jenkins → Global Tool Configuration
         jdk   'JDK-21'
         maven 'Maven-3'
     }
 
     options {
-        // Keep last 10 builds to save disk space
         buildDiscarder(logRotator(numToKeepStr: '10'))
-        // Fail the build if it takes longer than 30 minutes
         timeout(time: 30, unit: 'MINUTES')
         timestamps()
     }
@@ -25,84 +37,27 @@ pipeline {
     stages {
 
         // ─────────────────────────────────────────────────────────────────────
-        // Stage 1 – Build
-        // ─────────────────────────────────────────────────────────────────────
-        stage('Build') {
-            steps {
-                echo '=== Stage 1: Compiling all modules ==='
-                sh 'mvn clean compile -B'
-            }
-            post {
-                failure { echo 'Build FAILED – aborting pipeline.' }
-            }
-        }
-
-        // ─────────────────────────────────────────────────────────────────────
-        // Stage 2 – Test
-        // ─────────────────────────────────────────────────────────────────────
-        stage('Test') {
-            steps {
-                echo '=== Stage 2: Running unit, integration and E2E tests ==='
-
-                // Run the full test suite and generate aggregated JaCoCo report in one pass.
-                // Tests use @DataJpaTest / @WebMvcTest slices so no running config-server is needed.
-                // Do NOT add 'clean' here – it would delete the .exec files needed by report-aggregate.
-                sh 'mvn test jacoco:report-aggregate -B'
-            }
-            post {
-                always {
-                    // Publish JUnit results so Jenkins shows pass/fail per test
-                    junit allowEmptyResults: true,
-                          testResults: '**/target/surefire-reports/TEST-*.xml'
-
-                    // Publish JaCoCo coverage report
-                    jacoco(
-                        execPattern:         '**/target/jacoco.exec',
-                        classPattern:        '**/target/classes',
-                        sourcePattern:       '**/src/main/java',
-                        exclusionPattern:    '**/dto/**,**/entity/**,**/*Application.class',
-                        minimumLineCoverage: '70'
-                    )
-                }
-                failure { echo 'Tests FAILED – aborting pipeline.' }
-            }
-        }
-
-        // ─────────────────────────────────────────────────────────────────────
-        // Stage 3 – Code Quality (SonarCloud)
-        // ─────────────────────────────────────────────────────────────────────
-        stage('Code Quality') {
-            steps {
-                echo '=== Stage 3: SonarCloud analysis ==='
-                script {
-                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                        sh '''
-                            mvn -B verify sonar:sonar \
-                                -DskipTests \
-                                -Dsonar.projectKey=DiasMurilo_virtual-clothing-store \
-                                -Dsonar.organization=diasmurilo \
-                                -Dsonar.host.url=https://sonarcloud.io \
-                                -Dsonar.token=${SONAR_TOKEN} \
-                                -Dsonar.qualitygate.wait=false
-                        '''
-                    }
-                }
-            }
-            post {
-                failure { echo 'Quality gate FAILED – aborting pipeline.' }
-            }
-        }
-
-        // ─────────────────────────────────────────────────────────────────────
-        // Stage 4 – Package & Docker Build
+        // Stage 1 – Package
+        // Produces fat JARs with -DskipTests (CI already verified the tests).
+        // Then builds a Docker image per module and optionally pushes to GHCR.
         // ─────────────────────────────────────────────────────────────────────
         stage('Package') {
             steps {
-                echo '=== Stage 4: Packaging JARs and building Docker images ==='
+                echo "=== Stage 1: Packaging build #${BUILD_NUMBER} (commit ${params.GIT_SHA ?: 'manual'}) ==="
 
+                // Ensure Docker CLI is available (install once if missing)
+                sh '''
+                    if ! command -v docker &> /dev/null; then
+                        echo "Docker CLI not found – installing..."
+                        apt-get update -qq && apt-get install -y docker.io
+                        chmod 666 /var/run/docker.sock || true
+                    fi
+                '''
+
+                // Produce all module JARs without re-running the test suite
                 sh 'mvn package -DskipTests -B'
 
-                // Try to log in to GHCR if the credential exists (optional)
+                // Attempt GHCR login (credential is optional – pipeline continues without it)
                 script {
                     try {
                         withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
@@ -110,15 +65,16 @@ pipeline {
                             env.GHCR_LOGGED_IN = 'true'
                         }
                     } catch (e) {
-                        echo 'ghcr-token credential not found – images will be built locally only (no push).'
+                        echo "ghcr-token credential not configured – images will be built locally only."
                         env.GHCR_LOGGED_IN = 'false'
                     }
                 }
 
-                // Build Docker images for each module
+                // Build one image per module from the shared multi-stage Dockerfile
                 sh '''
                     for MODULE in discovery-server config-server api-gateway catalog-service order-service; do
                         IMAGE=${REGISTRY}/${IMAGE_NAME}/${MODULE}
+                        echo "--- Building ${IMAGE}:${BUILD_NUMBER} ---"
                         docker build \
                             --build-arg MODULE=${MODULE} \
                             -t ${IMAGE}:${BUILD_NUMBER} \
@@ -127,7 +83,7 @@ pipeline {
                     done
                 '''
 
-                // Push only when logged in
+                // Push to GHCR only when logged in
                 script {
                     if (env.GHCR_LOGGED_IN == 'true') {
                         sh '''
@@ -142,7 +98,6 @@ pipeline {
             }
             post {
                 always {
-                    // Archive the fat JARs so they can be downloaded from the build page
                     archiveArtifacts artifacts: '**/target/*.jar,!**/target/*-sources.jar',
                                      allowEmptyArchive: true
                 }
@@ -151,21 +106,22 @@ pipeline {
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // Stage 5 – Deploy (local Docker Compose)
-        // Runs automatically only after all previous stages succeed.
-        // Requires the Jenkins agent to have Docker + Compose available.
+        // Stage 2 – Deploy
+        // Tears down the previous stack, brings up the freshly built images,
+        // and verifies all containers reach a running state.
         // ─────────────────────────────────────────────────────────────────────
         stage('Deploy') {
             steps {
-                echo '=== Stage 5: Deploying with Docker Compose ==='
+                echo '=== Stage 2: Deploying with Docker Compose ==='
 
-                // Tear down any previously running stack gracefully
+                // Graceful shutdown of the previous version
                 sh 'docker compose down --remove-orphans || true'
 
-                // Bring the full stack up (detached)
-                sh 'docker compose up -d --build'
+                // Bring the full stack up in detached mode using the images
+                // built in the Package stage (--no-build skips redundant rebuilds)
+                sh 'docker compose up -d'
 
-                // Wait for services to stabilise, then verify
+                // Wait for services to stabilise, then assert no container exited
                 sh '''
                     echo "Waiting 30 s for containers to start..."
                     sleep 30
@@ -209,7 +165,7 @@ pipeline {
         }
         always {
             node('built-in') {
-                cleanWs()   // clean workspace after every run
+                cleanWs()
             }
         }
     }

@@ -69,20 +69,10 @@ jobs:
         distribution: 'temurin'
         cache: 'maven'
 
-    - name: Add config-server hostname
-      run: |
-        sudo sh -c 'echo "127.0.0.1 config-server" >> /etc/hosts'
-
-    - name: Start Spring Cloud Config Server
-      run: |
-        mvn -pl config-server spring-boot:run -Dspring.profiles.active=native &
-        sleep 15
-
-    - name: Run unit, integration, and E2E tests
-      run: mvn test -B
-
-    - name: Generate JaCoCo coverage report
-      run: mvn clean test jacoco:report-aggregate -B
+    - name: Run tests and generate JaCoCo coverage
+      # Single pass: runs tests, JaCoCo agent fires, then aggregates all .exec files.
+      # Do NOT prefix with 'clean' – it would delete the .exec data before aggregation.
+      run: mvn test jacoco:report-aggregate -B
 
     - name: Upload test results
       if: always()
@@ -129,16 +119,21 @@ jobs:
         key: ${{ runner.os }}-sonar
         restore-keys: ${{ runner.os }}-sonar
 
-    - name: Run tests with coverage
-      run: mvn clean test jacoco:report-aggregate -B
+    # Re-use the coverage report produced by the Test job – no need to re-run tests.
+    - name: Download test coverage report
+      uses: actions/download-artifact@v4
+      with:
+        name: test-results
 
     - name: SonarCloud Analysis
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
-        # run analysis from parent POM with aggregated coverage report
+        # Compile + verify lifecycle (no tests) so class files exist for Sonar,
+        # then analyse – coverage XML was restored from the Test job artifact above.
         mvn -B verify sonar:sonar \
+          -DskipTests \
           -Dsonar.projectKey=DiasMurilo_virtual-clothing-store \
           -Dsonar.organization=diasmurilo \
           -Dsonar.host.url=https://sonarcloud.io
@@ -199,3 +194,38 @@ jobs:
         tags: |
           type=ref,event=branch,ref=${{ github.ref_name }}
           type=sha
+
+    # Build and push one image per microservice module.
+    # Each image is tagged with the commit SHA (immutable) and :latest (mutable).
+    - name: Build and push Docker images
+      run: |
+        for MODULE in discovery-server config-server api-gateway catalog-service order-service; do
+          IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${MODULE}
+          docker build --build-arg MODULE=${MODULE} \
+            -t ${IMAGE}:${{ github.sha }} \
+            -t ${IMAGE}:latest \
+            .
+          docker push ${IMAGE}:${{ github.sha }}
+          docker push ${IMAGE}:latest
+        done
+
+    # Notify Jenkins to pull the new images and redeploy the stack.
+    # Requires three repository secrets:
+    #   JENKINS_URL          – e.g. https://abc123.ngrok-free.app
+    #   JENKINS_USER         – Jenkins username
+    #   JENKINS_API_TOKEN    – Jenkins API token for that user
+    # If the secrets are absent the step is skipped gracefully.
+    - name: Trigger Jenkins deployment
+      if: success()
+      run: |
+        if [ -n "${{ secrets.JENKINS_URL }}" ]; then
+          echo "Triggering Jenkins deployment for ${{ github.sha }}..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.JENKINS_URL }}/job/virtual-clothing-store/build" \
+            --user "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_API_TOKEN }}" \
+            --data-urlencode json='{"parameter":[{"name":"GIT_SHA","value":"${{ github.sha }}"}]}')
+          echo "Jenkins responded: ${STATUS}"
+          [ "${STATUS}" = "201" ] || echo "Warning: expected 201, got ${STATUS} – check Jenkins URL/credentials."
+        else
+          echo "JENKINS_URL secret not set – skipping Jenkins trigger."
+        fi
