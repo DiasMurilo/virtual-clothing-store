@@ -21,6 +21,8 @@ pipeline {
     environment {
         REGISTRY   = 'ghcr.io'
         IMAGE_NAME = 'diasmurilo/virtual-clothing-store'
+        GITHUB_REPO = 'DiasMurilo/virtual-clothing-store'
+        BRANCH      = 'CICD_Assignment1_Finished'
     }
 
     tools {
@@ -34,6 +36,13 @@ pipeline {
         timestamps()
     }
 
+    // Poll GitHub every 2 minutes for new commits on the target branch.
+    // Jenkins then checks via the GitHub Checks API whether all GitHub Actions
+    // workflows have passed for that commit before proceeding to deploy.
+    triggers {
+        pollSCM('H/2 * * * *')
+    }
+
     stages {
 
         // ─────────────────────────────────────────────────────────────────────
@@ -44,6 +53,48 @@ pipeline {
         stage('Package') {
             steps {
                 echo "=== Stage 1: Packaging build #${BUILD_NUMBER} (commit ${params.GIT_SHA ?: 'manual'}) ==="
+
+                // ── Wait for GitHub Actions CI to pass ─────────────────────
+                // Poll the GitHub Checks API until the workflow named
+                // "CI/CD Pipeline for Virtual Clothing Store" finishes.
+                // This ensures we never deploy a commit that failed CI.
+                sh '''
+                    SHA=$(git rev-parse HEAD)
+                    echo "Waiting for GitHub Actions to pass for commit ${SHA}..."
+                    for i in $(seq 1 40); do
+                        CONCLUSION=$(curl -s \
+                          "https://api.github.com/repos/${GITHUB_REPO}/actions/runs?head_sha=${SHA}&branch=${BRANCH}&per_page=5" \
+                          -H "Accept: application/vnd.github.v3+json" \
+                          | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+runs = data.get('workflow_runs', [])
+if not runs:
+    print('pending')
+    sys.exit(0)
+latest = runs[0]
+status = latest.get('status', '')
+conclusion = latest.get('conclusion', '')
+if status == 'completed':
+    print(conclusion)
+else:
+    print('pending')
+")
+                        echo "Attempt ${i}/40 – GHA status: ${CONCLUSION}"
+                        if [ "${CONCLUSION}" = "success" ]; then
+                            echo "GitHub Actions passed – proceeding with deployment."
+                            break
+                        elif [ "${CONCLUSION}" = "failure" ] || [ "${CONCLUSION}" = "cancelled" ]; then
+                            echo "GitHub Actions ${CONCLUSION} for ${SHA} – aborting deployment."
+                            exit 1
+                        fi
+                        sleep 30
+                    done
+                    if [ "${CONCLUSION}" != "success" ]; then
+                        echo "Timed out waiting for GitHub Actions (20 min). Aborting."
+                        exit 1
+                    fi
+                '''
 
                 // Ensure Docker CLI is available (install once if missing)
                 sh '''
