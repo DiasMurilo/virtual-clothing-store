@@ -2,9 +2,9 @@ name: CI/CD Pipeline for Virtual Clothing Store
 
 on:
   push:
-    branches: [ main, master, CICD_Assignment1_Finished ]
+    branches: [ main, master]
   pull_request:
-    branches: [ main, master, CICD_Assignment1_Finished ]
+    branches: [ main, master]
 
 # grant required permissions for actions used in this workflow
 permissions:
