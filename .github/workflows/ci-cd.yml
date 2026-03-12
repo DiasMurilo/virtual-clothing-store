@@ -16,7 +16,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   # use owner+repo to guarantee lowercase (owner is all lower in GitHub)
-  IMAGE_NAME: ${{ github.repository_owner }}/{{ github.event.repository.name }}
+  IMAGE_NAME: ${{ github.repository_owner }}/${{ github.event.repository.name }}
 
 
 jobs:
