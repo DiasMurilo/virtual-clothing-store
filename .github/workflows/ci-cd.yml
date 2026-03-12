@@ -2,9 +2,9 @@ name: CI/CD Pipeline for Virtual Clothing Store
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, CICD_Assignment1_Finished ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, CICD_Assignment1_Finished ]
 
 # grant required permissions for actions used in this workflow
 permissions:
@@ -15,8 +15,8 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  # use owner+repo to guarantee lowercase (owner is all lower in GitHub)
-  IMAGE_NAME: ${{ github.repository_owner }}/${{ github.event.repository.name }}
+  # github.repository returns "Owner/repo" – lowercased in the build loop
+  IMAGE_NAME: ${{ github.repository }}
 
 
 jobs:
