@@ -15,7 +15,9 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  # use owner+repo to guarantee lowercase (owner is all lower in GitHub)
+  IMAGE_NAME: ${{ github.repository_owner }}/{{ github.event.repository.name }}
+
 
 jobs:
   # Stage 1: Build
@@ -200,7 +202,9 @@ jobs:
     - name: Build and push Docker images
       run: |
         for MODULE in discovery-server config-server api-gateway catalog-service order-service; do
-          IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${MODULE}
+          # ensure repository path is lowercase
+          BASE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          IMAGE=$(echo "${BASE}/${MODULE}" | tr '[:upper:]' '[:lower:]')
           docker build --build-arg MODULE=${MODULE} \
             -t ${IMAGE}:${{ github.sha }} \
             -t ${IMAGE}:latest \
