@@ -133,10 +133,12 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
-        # Compile + verify lifecycle (no tests) so class files exist for Sonar,
-        # then analyse – coverage XML was restored from the Test job artifact above.
-        mvn -B verify sonar:sonar \
-          -DskipTests \
+        # 1. Compile + run tests so JaCoCo generates fresh .exec files in every module.
+        # 2. report-aggregate merges them into target/site/jacoco-aggregate/jacoco.xml.
+        # 3. verify lifecycle also triggers the per-module jacoco:report goal.
+        # 4. sonar:sonar then finds the XML via sonar.coverage.jacoco.xmlReportPaths
+        #    (configured in the parent POM to check both per-module and aggregate paths).
+        mvn -B verify jacoco:report-aggregate sonar:sonar \
           -Dsonar.projectKey=DiasMurilo_virtual-clothing-store \
           -Dsonar.organization=diasmurilo \
           -Dsonar.host.url=https://sonarcloud.io
