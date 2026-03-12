@@ -202,13 +202,11 @@ jobs:
     - name: Build and push Docker images
       run: |
         for MODULE in discovery-server config-server api-gateway catalog-service order-service; do
-          # ensure repository path is lowercase
           BASE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
           IMAGE=$(echo "${BASE}/${MODULE}" | tr '[:upper:]' '[:lower:]')
-          docker build --build-arg MODULE=${MODULE} \
-            -t ${IMAGE}:${{ github.sha }} \
-            -t ${IMAGE}:latest \
-            .
+          echo "Building image $IMAGE from module $MODULE"
+          # ensure the build context (.) is always passed without line continuation
+          docker build --build-arg MODULE=${MODULE} -t ${IMAGE}:${{ github.sha }} -t ${IMAGE}:latest .
           docker push ${IMAGE}:${{ github.sha }}
           docker push ${IMAGE}:latest
         done
