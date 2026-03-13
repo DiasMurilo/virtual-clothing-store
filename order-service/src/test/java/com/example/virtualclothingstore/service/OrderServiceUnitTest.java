@@ -37,11 +37,6 @@ import com.example.virtualclothingstore.entity.OrderStatus;
 import com.example.virtualclothingstore.repository.OrderItemRepository;
 import com.example.virtualclothingstore.repository.OrderRepository;
 
-/**
- * Unit tests for OrderService using Mockito.
- * These tests demonstrate the base of the Test Pyramid - fast, isolated unit tests
- * that verify business logic without any Spring context or database.
- */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("OrderService Unit Tests")
 class OrderServiceUnitTest {

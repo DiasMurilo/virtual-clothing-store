@@ -38,10 +38,6 @@ import com.example.virtualclothingstore.exception.ResourceNotFoundException;
 import com.example.virtualclothingstore.repository.OrderItemRepository;
 import com.example.virtualclothingstore.repository.OrderRepository;
 
-/**
- * Additional unit tests for OrderService covering DTO conversions, date range queries,
- * removeProductFromOrder, and pageable variants.
- */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("OrderService DTO Conversion & Query Tests")
 class OrderServiceDtoConversionTest {

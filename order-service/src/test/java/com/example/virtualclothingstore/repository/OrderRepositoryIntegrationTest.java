@@ -19,11 +19,6 @@ import com.example.virtualclothingstore.entity.Customer;
 import com.example.virtualclothingstore.entity.Order;
 import com.example.virtualclothingstore.entity.OrderStatus;
 
-/**
- * Repository integration tests using @DataJpaTest.
- * Tests actual database interactions with an in-memory H2 database.
- * Located higher in the Test Pyramid - fewer tests than unit tests.
- */
 @DataJpaTest
 @DisplayName("OrderRepository Integration Tests")
 class OrderRepositoryIntegrationTest {

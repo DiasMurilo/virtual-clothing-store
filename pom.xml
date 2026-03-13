@@ -28,8 +28,7 @@
         <!-- bump Spring Framework separately to satisfy Gateway's headerSet dependency -->
         <spring-framework.version>6.1.15</spring-framework.version>
 
-        <!-- ── Sonar properties (must be in POM; sonar-project.properties is
-                  ignored by mvn sonar:sonar) ── -->
+        <!-- Sonar properties (must be in POM; sonar-project.properties is ignored by mvn sonar:sonar) -->
         <sonar.projectKey>DiasMurilo_virtual-clothing-store</sonar.projectKey>
         <sonar.organization>diasmurilo</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -89,8 +88,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-            <!-- ensure test JVM property to help ByteBuddy on Java25.
-                 @{argLine} is late-bound so JaCoCo's agent is included when prepare-agent runs first. -->
+            <!-- JVM args for Surefire: @{argLine} is late-bound so JaCoCo's agent is included when prepare-agent runs first. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>

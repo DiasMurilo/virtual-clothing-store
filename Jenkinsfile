@@ -1,15 +1,5 @@
-// ─────────────────────────────────────────────────────────────────────────────
 // Jenkins CD Pipeline – Virtual Clothing Store
-//
-// Responsibility: Package → Deploy  (Continuous Delivery)
-//
-// Build, Test, and Code Quality (CI) are handled by the GitHub Actions workflow
-// (.github/workflows/ci-cd.yml) which runs on every push and triggers this
-// pipeline via the Jenkins REST API once all checks pass.
-//
-// This pipeline therefore NEVER re-runs the test suite; it only produces
-// deployable artefacts and brings the stack up with the new versions.
-// ─────────────────────────────────────────────────────────────────────────────
+// Stages: Package → Deploy (CI handled by GitHub Actions)
 pipeline {
     agent any
 
@@ -36,28 +26,18 @@ pipeline {
         timestamps()
     }
 
-    // Poll GitHub every 2 minutes for new commits on the target branch.
-    // Jenkins then checks via the GitHub Checks API whether all GitHub Actions
-    // workflows have passed for that commit before proceeding to deploy.
+    // Poll SCM every 2 minutes; CI gate check in Package stage ensures GHA passed first.
     triggers {
         pollSCM('H/2 * * * *')
     }
 
     stages {
 
-        // ─────────────────────────────────────────────────────────────────────
-        // Stage 1 – Package
-        // Produces fat JARs with -DskipTests (CI already verified the tests).
-        // Then builds a Docker image per module and optionally pushes to GHCR.
-        // ─────────────────────────────────────────────────────────────────────
         stage('Package') {
             steps {
                 echo "=== Stage 1: Packaging build #${BUILD_NUMBER} (commit ${params.GIT_SHA ?: 'manual'}) ==="
 
-                // ── Wait for GitHub Actions CI to pass ─────────────────────
-                // Poll the GitHub Checks API until the workflow named
-                // "CI/CD Pipeline for Virtual Clothing Store" finishes.
-                // This ensures we never deploy a commit that failed CI.
+                // Wait for GitHub Actions CI to pass before deploying
                 sh '''
                     SHA=$(git rev-parse HEAD)
                     echo "Waiting for GitHub Actions to pass for commit ${SHA}..."
@@ -169,11 +149,6 @@ else:
             }
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // Stage 2 – Deploy
-        // Tears down the previous stack, brings up the freshly built images,
-        // and verifies all containers reach a running state.
-        // ─────────────────────────────────────────────────────────────────────
         stage('Deploy') {
             steps {
                 echo '=== Stage 2: Deploying with Docker Compose ==='
@@ -207,22 +182,9 @@ else:
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Global post actions
-    // ─────────────────────────────────────────────────────────────────────────
     post {
         success {
-            echo """
-╔══════════════════════════════════════════╗
-║  Pipeline PASSED – build #${BUILD_NUMBER}  ║
-║  Services are live:                      ║
-║    API Gateway  → http://localhost:8080  ║
-║    Catalog      → http://localhost:8082  ║
-║    Order        → http://localhost:8081  ║
-║    Eureka       → http://localhost:8761  ║
-║    Zipkin       → http://localhost:9411  ║
-╚══════════════════════════════════════════╝
-"""
+            echo "Pipeline PASSED – build #${BUILD_NUMBER}. Services live on :8080 (API Gateway), :8082 (Catalog), :8081 (Order), :8761 (Eureka), :9411 (Zipkin)."
         }
         failure {
             echo 'Pipeline FAILED – review the stage that turned red above.'

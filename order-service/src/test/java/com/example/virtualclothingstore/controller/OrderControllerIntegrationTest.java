@@ -35,11 +35,6 @@ import com.example.virtualclothingstore.entity.Order;
 import com.example.virtualclothingstore.service.OrderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-/**
- * Integration test for OrderController using @WebMvcTest.
- * This is a slice test - it loads only the web layer and mocks the service layer.
- * Positioned at the middle of the Test Pyramid - fewer tests than unit level.
- */
 @WebMvcTest(OrderController.class)
 @DisplayName("OrderController Integration Tests")
 class OrderControllerIntegrationTest {

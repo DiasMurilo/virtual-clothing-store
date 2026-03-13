@@ -24,10 +24,6 @@ import com.example.virtualclothingstore.dto.CustomerDTO;
 import com.example.virtualclothingstore.entity.Customer;
 import com.example.virtualclothingstore.repository.CustomerRepository;
 
-/**
- * Unit tests for CustomerService.
- * Demonstrates proper use of mocks and constructor injection.
- */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CustomerService Unit Tests")
 class CustomerServiceUnitTest {

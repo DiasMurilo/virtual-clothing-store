@@ -9,19 +9,19 @@ A Spring Boot microservices application for managing customers, products, orders
 
 ## Technologies
 
-| Layer | Tool |
-|---|---|
-| Language | Java 21 |
-| Framework | Spring Boot 3.2, Spring Cloud 2023.x |
-| Build | Maven 3.9 |
-| Database | PostgreSQL 15 |
-| Containerisation | Docker, Docker Compose V2 |
-| CI | GitHub Actions |
-| CD | Jenkins (Docker container) |
-| Code Quality | SonarCloud + JaCoCo |
-| Tracing | Zipkin |
-| Service Discovery | Netflix Eureka |
-| Config | Spring Cloud Config Server |
+| Layer             | Tool                                 |
+| ----------------- | ------------------------------------ |
+| Language          | Java 21                              |
+| Framework         | Spring Boot 3.2, Spring Cloud 2023.x |
+| Build             | Maven 3.9                            |
+| Database          | PostgreSQL 15                        |
+| Containerisation  | Docker, Docker Compose V2            |
+| CI                | GitHub Actions                       |
+| CD                | Jenkins (Docker container)           |
+| Code Quality      | SonarCloud + JaCoCo                  |
+| Tracing           | Zipkin                               |
+| Service Discovery | Netflix Eureka                       |
+| Config            | Spring Cloud Config Server           |
 
 ---
 
@@ -59,16 +59,16 @@ curl http://localhost:8080/api/orders
 
 ### Service ports
 
-| Port | Service | URL |
-|---|---|---|
+| Port | Service          | URL                   |
+| ---- | ---------------- | --------------------- |
 | 8761 | Eureka dashboard | http://localhost:8761 |
-| 8888 | Config server | http://localhost:8888 |
-| 8080 | API Gateway | http://localhost:8080 |
-| 8081 | Order service | http://localhost:8081 |
-| 8082 | Catalog service | http://localhost:8082 |
-| 5432 | PostgreSQL | localhost:5432 |
-| 9411 | Zipkin tracing | http://localhost:9411 |
-| 8090 | Jenkins UI | http://localhost:8090 |
+| 8888 | Config server    | http://localhost:8888 |
+| 8080 | API Gateway      | http://localhost:8080 |
+| 8081 | Order service    | http://localhost:8081 |
+| 8082 | Catalog service  | http://localhost:8082 |
+| 5432 | PostgreSQL       | localhost:5432        |
+| 9411 | Zipkin tracing   | http://localhost:9411 |
+| 8090 | Jenkins UI       | http://localhost:8090 |
 
 Each JVM exposes `/actuator/health`; Docker Compose healthchecks use that endpoint so containers are marked healthy only when the application is up.
 
@@ -85,10 +85,10 @@ mvn test jacoco:report-aggregate -B
 # Coverage report → target/site/jacoco-aggregate/index.html
 ```
 
-
 ## CI/CD Pipeline
 
 The project uses a **two-tier pipeline**:
+
 - **GitHub Actions** — CI: build → test → code quality → package & push Docker images to GHCR
 - **Jenkins** — CD: waits for CI to pass → builds Docker images locally → deploys with `docker compose`
 
@@ -109,9 +109,9 @@ Checks out the repository with full history (`fetch-depth: 0`), sets up Eclipse 
 ```yaml
 - uses: actions/setup-java@v4
   with:
-    java-version: '21'
-    distribution: 'temurin'
-    cache: 'maven'
+    java-version: "21"
+    distribution: "temurin"
+    cache: "maven"
 - run: mvn clean compile -B
 ```
 
@@ -135,7 +135,7 @@ mvn -B verify sonar:sonar \
   -Dsonar.host.url=https://sonarcloud.io
 ```
 
-**Stage 4 – Package & Docker** *(master branch only)*
+**Stage 4 – Package & Docker** _(master branch only)_
 
 Packages all modules into fat JARs, builds one Docker image per microservice, pushes to GHCR tagged with the commit SHA and `:latest`, then triggers Jenkins via REST API.
 
@@ -177,6 +177,7 @@ docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 Jenkins UI: http://localhost:8090
 
 **One-time Jenkins setup:**
+
 ```
 Manage Jenkins → Tools:
   JDK:   name=JDK-21,   install from Adoptium, version 21
@@ -192,6 +193,7 @@ New Item → Pipeline:
 ```
 
 **Stage 1 – Package**
+
 ```bash
 # Auto-installs Docker Compose V2 plugin if missing
 mkdir -p /var/jenkins_home/.docker/cli-plugins
@@ -210,6 +212,7 @@ done
 ```
 
 **Stage 2 – Deploy**
+
 ```bash
 # Tear down previous stack
 docker compose down --remove-orphans || true
@@ -227,14 +230,13 @@ fi
 
 ### Required GitHub repository secrets
 
-| Secret | Required | Purpose |
-|---|---|---|
-| `SONAR_TOKEN` | Yes | SonarCloud analysis authentication |
-| `GITHUB_TOKEN` | Auto | GHCR login + PR status (built-in) |
-| `JENKINS_URL` | Optional | Trigger Jenkins via REST API |
-| `JENKINS_USER` | Optional | Jenkins username for API trigger |
-| `JENKINS_API_TOKEN` | Optional | Jenkins API token for trigger |
-
+| Secret              | Required | Purpose                            |
+| ------------------- | -------- | ---------------------------------- |
+| `SONAR_TOKEN`       | Yes      | SonarCloud analysis authentication |
+| `GITHUB_TOKEN`      | Auto     | GHCR login + PR status (built-in)  |
+| `JENKINS_URL`       | Optional | Trigger Jenkins via REST API       |
+| `JENKINS_USER`      | Optional | Jenkins username for API trigger   |
+| `JENKINS_API_TOKEN` | Optional | Jenkins API token for trigger      |
 
 ### Interacting
 
@@ -313,8 +315,6 @@ service hop.
 This README satisfies the initial scope of turning a Spring Boot monolith into
 a working microservices example, complete with discovery, configuration,
 resilience, and container orchestration.
-
-
 
 ## API Endpoints
 
